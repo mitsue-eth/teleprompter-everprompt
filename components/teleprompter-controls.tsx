@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Play, Pause, ChevronUp, ChevronDown, RotateCcw, Settings } from "lucide-react"
+import { Play, Pause, ChevronUp, ChevronDown, RotateCcw, Settings, ChevronDown as ChevronDownIcon, ChevronRight } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { cn } from "@/lib/utils"
 import type { TeleprompterSettings } from "@/hooks/use-teleprompter-settings"
 
 interface TeleprompterControlsProps {
@@ -35,6 +36,10 @@ export function TeleprompterControls({
   const MIN_SPEED = 0.1
   const MAX_SPEED = 5.0
   const SPEED_STEP = 0.01
+
+  // Collapsible section states
+  const [isTextPositionOpen, setIsTextPositionOpen] = React.useState(false)
+  const [isCrosshairOpen, setIsCrosshairOpen] = React.useState(false)
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -203,144 +208,296 @@ export function TeleprompterControls({
               </div>
             </div>
 
-            {/* Text Alignment */}
-            <div className="space-y-3">
-              <Label>Text Alignment</Label>
-              <ToggleGroup
-                type="single"
-                value={settings.textAlign}
-                onValueChange={(value) => {
-                  if (value === "left" || value === "center" || value === "right" || value === "justify") {
-                    onSettingChange("textAlign", value)
-                  }
-                }}
-                className="w-full"
+            {/* Text Positioning - Collapsible Section */}
+            <div className="space-y-3 border-t border-border/30 pt-6">
+              <button
+                type="button"
+                onClick={() => setIsTextPositionOpen(!isTextPositionOpen)}
+                className="flex w-full items-center justify-between text-left cursor-pointer hover:text-foreground transition-colors"
               >
-                <ToggleGroupItem value="left" aria-label="Left align" className="flex-1">
-                  Left
-                </ToggleGroupItem>
-                <ToggleGroupItem value="center" aria-label="Center align" className="flex-1">
-                  Center
-                </ToggleGroupItem>
-                <ToggleGroupItem value="right" aria-label="Right align" className="flex-1">
-                  Right
-                </ToggleGroupItem>
-                <ToggleGroupItem value="justify" aria-label="Justify" className="flex-1">
-                  Justify
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+                <Label className="text-base font-semibold cursor-pointer">Text Positioning</Label>
+                {isTextPositionOpen ? (
+                  <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              
+              {isTextPositionOpen && (
+                <div className="space-y-6 pt-3">
+                  {/* Text Alignment */}
+                  <div className="space-y-3">
+                    <Label>Text Alignment</Label>
+                    <ToggleGroup
+                      type="single"
+                      value={settings.textAlign}
+                      onValueChange={(value) => {
+                        if (value === "left" || value === "center" || value === "right" || value === "justify") {
+                          onSettingChange("textAlign", value)
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      <ToggleGroupItem value="left" aria-label="Left align" className="flex-1">
+                        Left
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="center" aria-label="Center align" className="flex-1">
+                        Center
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="right" aria-label="Right align" className="flex-1">
+                        Right
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="justify" aria-label="Justify" className="flex-1">
+                        Justify
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
 
-            {/* Horizontal Position */}
-            <div className="space-y-3">
-              <Label>Horizontal Position</Label>
-              <ToggleGroup
-                type="single"
-                value={settings.horizontalPosition}
-                onValueChange={(value) => {
-                  if (value === "left" || value === "center" || value === "right") {
-                    // Always reset offset to 0 when switching presets
-                    onSettingChange("horizontalPosition", value)
-                    onSettingChange("horizontalOffset", 0)
-                  }
-                }}
-                className="w-full"
-              >
-                <ToggleGroupItem value="left" aria-label="Left" className="flex-1">
-                  Left
-                </ToggleGroupItem>
-                <ToggleGroupItem value="center" aria-label="Center" className="flex-1">
-                  Center
-                </ToggleGroupItem>
-                <ToggleGroupItem value="right" aria-label="Right" className="flex-1">
-                  Right
-                </ToggleGroupItem>
-              </ToggleGroup>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="horizontal-offset-slider" className="text-sm">
-                    Fine-tune
-                  </Label>
-                  <span className="text-sm text-muted-foreground">
-                    {settings.horizontalOffset > 0 ? "+" : ""}{settings.horizontalOffset}%
-                  </span>
+                  {/* Horizontal Position */}
+                  <div className="space-y-3">
+                    <Label>Horizontal Position</Label>
+                    <ToggleGroup
+                      type="single"
+                      value={settings.horizontalPosition}
+                      onValueChange={(value) => {
+                        if (value === "left" || value === "center" || value === "right") {
+                          // Always reset offset to 0 when switching presets
+                          onSettingChange("horizontalPosition", value)
+                          onSettingChange("horizontalOffset", 0)
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      <ToggleGroupItem value="left" aria-label="Left" className="flex-1">
+                        Left
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="center" aria-label="Center" className="flex-1">
+                        Center
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="right" aria-label="Right" className="flex-1">
+                        Right
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="horizontal-offset-slider" className="text-sm">
+                          Fine-tune
+                        </Label>
+                        <span className="text-sm text-muted-foreground">
+                          {settings.horizontalOffset > 0 ? "+" : ""}{settings.horizontalOffset}%
+                        </span>
+                      </div>
+                      <Slider
+                        id="horizontal-offset-slider"
+                        min={-50}
+                        max={50}
+                        step={1}
+                        value={[settings.horizontalOffset]}
+                        onValueChange={(value) => onSettingChange("horizontalOffset", value[0])}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Vertical Position */}
+                  <div className="space-y-3">
+                    <Label>Vertical Position</Label>
+                    <ToggleGroup
+                      type="single"
+                      value={settings.verticalPosition}
+                      onValueChange={(value) => {
+                        if (value === "top" || value === "center" || value === "bottom") {
+                          // Always reset offset to 0 when switching presets
+                          onSettingChange("verticalPosition", value)
+                          onSettingChange("verticalOffset", 0)
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      <ToggleGroupItem value="top" aria-label="Top" className="flex-1">
+                        Top
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="center" aria-label="Center" className="flex-1">
+                        Center
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="bottom" aria-label="Bottom" className="flex-1">
+                        Bottom
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="vertical-offset-slider" className="text-sm">
+                          Fine-tune
+                        </Label>
+                        <span className="text-sm text-muted-foreground">
+                          {settings.verticalOffset > 0 ? "+" : ""}{settings.verticalOffset}%
+                        </span>
+                      </div>
+                      <Slider
+                        id="vertical-offset-slider"
+                        min={-50}
+                        max={50}
+                        step={1}
+                        value={[settings.verticalOffset]}
+                        onValueChange={(value) => onSettingChange("verticalOffset", value[0])}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
                 </div>
-                <Slider
-                  id="horizontal-offset-slider"
-                  min={-50}
-                  max={50}
-                  step={1}
-                  value={[settings.horizontalOffset]}
-                  onValueChange={(value) => onSettingChange("horizontalOffset", value[0])}
-                  className="w-full"
-                />
-              </div>
+              )}
             </div>
 
-            {/* Vertical Position */}
-            <div className="space-y-3">
-              <Label>Vertical Position</Label>
-              <ToggleGroup
-                type="single"
-                value={settings.verticalPosition}
-                onValueChange={(value) => {
-                  if (value === "top" || value === "center" || value === "bottom") {
-                    // Always reset offset to 0 when switching presets
-                    onSettingChange("verticalPosition", value)
-                    onSettingChange("verticalOffset", 0)
-                  }
-                }}
-                className="w-full"
+            {/* Camera Target - Collapsible Section */}
+            <div className="space-y-3 border-t border-border/30 pt-6">
+              <button
+                type="button"
+                onClick={() => setIsCrosshairOpen(!isCrosshairOpen)}
+                className="flex w-full items-center justify-between text-left cursor-pointer hover:text-foreground transition-colors"
               >
-                <ToggleGroupItem value="top" aria-label="Top" className="flex-1">
-                  Top
-                </ToggleGroupItem>
-                <ToggleGroupItem value="center" aria-label="Center" className="flex-1">
-                  Center
-                </ToggleGroupItem>
-                <ToggleGroupItem value="bottom" aria-label="Bottom" className="flex-1">
-                  Bottom
-                </ToggleGroupItem>
-              </ToggleGroup>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="vertical-offset-slider" className="text-sm">
-                    Fine-tune
-                  </Label>
-                  <span className="text-sm text-muted-foreground">
-                    {settings.verticalOffset > 0 ? "+" : ""}{settings.verticalOffset}%
-                  </span>
-                </div>
-                <Slider
-                  id="vertical-offset-slider"
-                  min={-50}
-                  max={50}
-                  step={1}
-                  value={[settings.verticalOffset]}
-                  onValueChange={(value) => onSettingChange("verticalOffset", value[0])}
-                  className="w-full"
-                />
-              </div>
-            </div>
-
-            {/* Crosshair Target */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="crosshair-toggle">Camera Lens Target</Label>
                 <div className="flex items-center gap-2">
+                  <Label className="text-base font-semibold cursor-pointer">Camera Lens Target</Label>
                   <Checkbox
-                    id="crosshair-toggle"
                     checked={settings.showCrosshair}
                     onCheckedChange={(checked) => onSettingChange("showCrosshair", checked === true)}
+                    onClick={(e) => e.stopPropagation()}
                   />
-                  <Label htmlFor="crosshair-toggle" className="text-sm font-normal cursor-pointer">
-                    Show crosshair
-                  </Label>
                 </div>
-              </div>
+                {isCrosshairOpen ? (
+                  <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
               
-              {settings.showCrosshair && (
-                <>
+              {isCrosshairOpen && settings.showCrosshair && (
+                <div className="space-y-6 pt-3">
+                  {/* Crosshair Shape */}
+                  <div className="space-y-3">
+                    <Label>Shape</Label>
+                    <ToggleGroup
+                      type="single"
+                      value={settings.crosshairShape}
+                      onValueChange={(value) => {
+                        if (value === "circle" || value === "square" || value === "cross" || value === "dot") {
+                          onSettingChange("crosshairShape", value)
+                        }
+                      }}
+                      className="w-full"
+                    >
+                      <ToggleGroupItem value="circle" aria-label="Circle" className="flex-1">
+                        Circle
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="square" aria-label="Square" className="flex-1">
+                        Square
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="cross" aria-label="Cross" className="flex-1">
+                        Cross
+                      </ToggleGroupItem>
+                      <ToggleGroupItem value="dot" aria-label="Dot" className="flex-1">
+                        Dot
+                      </ToggleGroupItem>
+                    </ToggleGroup>
+                  </div>
+
+                  {/* Crosshair Size */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="crosshair-size-slider">Size</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.crosshairSize}px
+                      </span>
+                    </div>
+                    <Slider
+                      id="crosshair-size-slider"
+                      min={10}
+                      max={100}
+                      step={2}
+                      value={[settings.crosshairSize]}
+                      onValueChange={(value) => onSettingChange("crosshairSize", value[0])}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>10px</span>
+                      <span>100px</span>
+                    </div>
+                  </div>
+
+                  {/* Crosshair Intensity */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="crosshair-intensity-slider">Color Intensity</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.crosshairIntensity}%
+                      </span>
+                    </div>
+                    <Slider
+                      id="crosshair-intensity-slider"
+                      min={0}
+                      max={100}
+                      step={5}
+                      value={[settings.crosshairIntensity]}
+                      onValueChange={(value) => onSettingChange("crosshairIntensity", value[0])}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+
+                  {/* Crosshair Color */}
+                  <div className="space-y-3">
+                    <Label>Color</Label>
+                    <div className="grid grid-cols-6 gap-2">
+                      {[
+                        { name: "Blue", value: "#3b82f6" },
+                        { name: "Red", value: "#ef4444" },
+                        { name: "Green", value: "#22c55e" },
+                        { name: "Yellow", value: "#eab308" },
+                        { name: "Purple", value: "#a855f7" },
+                        { name: "White", value: "#ffffff" },
+                        { name: "Orange", value: "#f97316" },
+                        { name: "Pink", value: "#ec4899" },
+                        { name: "Cyan", value: "#06b6d4" },
+                        { name: "Lime", value: "#84cc16" },
+                        { name: "Indigo", value: "#6366f1" },
+                        { name: "Gray", value: "#94a3b8" },
+                      ].map((color) => (
+                        <button
+                          key={color.value}
+                          type="button"
+                          onClick={() => onSettingChange("crosshairColor", color.value)}
+                          className={cn(
+                            "h-8 w-full rounded-md border-2 transition-all cursor-pointer",
+                            settings.crosshairColor === color.value
+                              ? "border-foreground scale-110"
+                              : "border-border hover:border-foreground/50"
+                          )}
+                          style={{ backgroundColor: color.value }}
+                          title={color.name}
+                          aria-label={`Select ${color.name} color`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="crosshair-color-input" className="text-sm">
+                        Custom:
+                      </Label>
+                      <input
+                        id="crosshair-color-input"
+                        type="color"
+                        value={settings.crosshairColor}
+                        onChange={(e) => onSettingChange("crosshairColor", e.target.value)}
+                        className="h-8 w-16 cursor-pointer rounded border border-border bg-background"
+                      />
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {settings.crosshairColor}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Crosshair Position */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="crosshair-x-slider" className="text-sm">
@@ -380,7 +537,7 @@ export function TeleprompterControls({
                       className="w-full"
                     />
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>

@@ -9,10 +9,14 @@ import { TeleprompterControls } from "@/components/teleprompter-controls"
 import { Card } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { FileText, Settings, Play, Pause, ChevronUp, ChevronDown, RotateCcw, Plus, Minus } from "lucide-react"
+import { FileText, Settings, Play, Pause, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-export function Teleprompter() {
+export interface TeleprompterRef {
+  openSettings: () => void
+}
+
+export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   const { settings, updateSetting, isLoaded } = useTeleprompterSettings()
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [isEditorOpen, setIsEditorOpen] = React.useState(false)
@@ -20,6 +24,15 @@ export function Teleprompter() {
   const [isMounted, setIsMounted] = React.useState(false)
   const [isScrollingUp, setIsScrollingUp] = React.useState(false)
   const [isScrollingDown, setIsScrollingDown] = React.useState(false)
+  const [isSpeedDecreasing, setIsSpeedDecreasing] = React.useState(false)
+  const [isSpeedIncreasing, setIsSpeedIncreasing] = React.useState(false)
+
+  // Expose method to open settings panel
+  React.useImperativeHandle(ref, () => ({
+    openSettings: () => {
+      setIsControlsOpen(true)
+    },
+  }), [])
 
   // Ensure component is mounted on client before rendering client-only features
   React.useEffect(() => {
@@ -65,11 +78,15 @@ export function Teleprompter() {
   const handleSpeedIncrease = React.useCallback(() => {
     const newSpeed = Math.min(5.0, settings.scrollSpeed + 0.1)
     updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100)
+    setIsSpeedIncreasing(true)
+    setTimeout(() => setIsSpeedIncreasing(false), 150) // Visual feedback duration
   }, [settings.scrollSpeed, updateSetting])
 
   const handleSpeedDecrease = React.useCallback(() => {
     const newSpeed = Math.max(0.1, settings.scrollSpeed - 0.1)
     updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100)
+    setIsSpeedDecreasing(true)
+    setTimeout(() => setIsSpeedDecreasing(false), 150) // Visual feedback duration
   }, [settings.scrollSpeed, updateSetting])
 
   const handleReset = React.useCallback(() => {
@@ -101,19 +118,25 @@ export function Teleprompter() {
         handlePlayPause()
       }
 
-      // Arrow keys: scroll up/down
+      // Arrow keys: scroll up/down, speed left/right
       if (e.code === "ArrowUp") {
         e.preventDefault()
         handleScrollUp()
       } else if (e.code === "ArrowDown") {
         e.preventDefault()
         handleScrollDown()
+      } else if (e.code === "ArrowLeft") {
+        e.preventDefault()
+        handleSpeedDecrease()
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault()
+        handleSpeedIncrease()
       }
     }
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isMounted, isEditorOpen, isControlsOpen, handlePlayPause, handleScrollUp, handleScrollDown])
+  }, [isMounted, isEditorOpen, isControlsOpen, handlePlayPause, handleScrollUp, handleScrollDown, handleSpeedDecrease, handleSpeedIncrease])
 
   // Load panel states from localStorage
   React.useEffect(() => {
@@ -236,6 +259,11 @@ export function Teleprompter() {
             showCrosshair={settings.showCrosshair}
             crosshairX={settings.crosshairX}
             crosshairY={settings.crosshairY}
+            crosshairShape={settings.crosshairShape}
+            crosshairSize={settings.crosshairSize}
+            crosshairColor={settings.crosshairColor}
+            crosshairIntensity={settings.crosshairIntensity}
+            onOpenEditor={() => setIsEditorOpen(true)}
           />
 
           {/* Floating Controls - only show when panels are closed */}
@@ -258,15 +286,18 @@ export function Teleprompter() {
                   <span className="sr-only">Play/Pause</span>
                 </Button>
 
-                {/* Speed Decrease Button */}
+                {/* Speed Decrease Button (Left Arrow) */}
                 <Button
-                  variant="outline"
+                  variant={isSpeedDecreasing ? "default" : "outline"}
                   size="icon"
                   onClick={handleSpeedDecrease}
-                  className="h-10 w-10"
-                  title="Decrease Speed"
+                  className={cn(
+                    "h-10 w-10 transition-all",
+                    isSpeedDecreasing && "scale-110"
+                  )}
+                  title="Decrease Speed (←)"
                 >
-                  <Minus className="h-5 w-5" />
+                  <ChevronLeft className="h-5 w-5" />
                   <span className="sr-only">Decrease Speed</span>
                 </Button>
 
@@ -275,15 +306,18 @@ export function Teleprompter() {
                   {settings.scrollSpeed.toFixed(2)}x
                 </div>
 
-                {/* Speed Increase Button */}
+                {/* Speed Increase Button (Right Arrow) */}
                 <Button
-                  variant="outline"
+                  variant={isSpeedIncreasing ? "default" : "outline"}
                   size="icon"
                   onClick={handleSpeedIncrease}
-                  className="h-10 w-10"
-                  title="Increase Speed"
+                  className={cn(
+                    "h-10 w-10 transition-all",
+                    isSpeedIncreasing && "scale-110"
+                  )}
+                  title="Increase Speed (→)"
                 >
-                  <Plus className="h-5 w-5" />
+                  <ChevronRight className="h-5 w-5" />
                   <span className="sr-only">Increase Speed</span>
                 </Button>
 
@@ -335,5 +369,7 @@ export function Teleprompter() {
       </div>
     </>
   )
-}
+})
+
+Teleprompter.displayName = "Teleprompter"
 

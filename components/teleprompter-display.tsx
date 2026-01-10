@@ -21,6 +21,11 @@ interface TeleprompterDisplayProps {
   showCrosshair: boolean
   crosshairX: number
   crosshairY: number
+  crosshairShape: "circle" | "square" | "cross" | "dot"
+  crosshairSize: number
+  crosshairColor: string
+  crosshairIntensity: number
+  onOpenEditor?: () => void
 }
 
 export function TeleprompterDisplay({
@@ -40,6 +45,11 @@ export function TeleprompterDisplay({
   showCrosshair,
   crosshairX,
   crosshairY,
+  crosshairShape,
+  crosshairSize,
+  crosshairColor,
+  crosshairIntensity,
+  onOpenEditor,
 }: TeleprompterDisplayProps) {
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -200,6 +210,10 @@ export function TeleprompterDisplay({
         enabled={showCrosshair}
         x={crosshairX}
         y={crosshairY}
+        shape={crosshairShape}
+        size={crosshairSize}
+        color={crosshairColor}
+        intensity={crosshairIntensity}
       />
       <div
         ref={contentRef}
@@ -233,9 +247,17 @@ export function TeleprompterDisplay({
             text
           )
         ) : (
-          <span className="text-muted-foreground opacity-50">
+          <button
+            type="button"
+            onClick={onOpenEditor}
+            className={cn(
+              "text-muted-foreground opacity-50 hover:opacity-70 hover:text-foreground",
+              "transition-all cursor-pointer",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+            )}
+          >
             Enter your script to begin...
-          </span>
+          </button>
         )}
       </div>
     </div>
