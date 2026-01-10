@@ -7,6 +7,7 @@ interface UseTeleprompterScrollProps {
   speed: number
   mode: "auto" | "manual"
   isPlaying: boolean
+  onComplete?: () => void // Callback when scrolling reaches the end
 }
 
 export function useTeleprompterScroll({
@@ -14,6 +15,7 @@ export function useTeleprompterScroll({
   speed,
   mode,
   isPlaying,
+  onComplete,
 }: UseTeleprompterScrollProps) {
   const [scrollPosition, setScrollPosition] = useState(0)
   const [isPaused, setIsPaused] = useState(!isPlaying)
@@ -26,7 +28,9 @@ export function useTeleprompterScroll({
     if (!containerRef.current || !contentRef.current) return 0
     const containerHeight = containerRef.current.clientHeight
     const contentHeight = contentRef.current.scrollHeight
-    const maxScroll = Math.max(0, contentHeight - containerHeight)
+    // Allow scrolling past the end so content can fully disappear
+    // Add extra scroll space equal to container height
+    const maxScroll = Math.max(0, contentHeight + containerHeight)
     return maxScroll
   }, [])
 
@@ -70,11 +74,18 @@ export function useTeleprompterScroll({
           
           const newPosition = prev + deltaPixels
           
+          // Continue scrolling until content is fully off-screen
+          // Stop only when we've scrolled past the maximum (content fully disappeared)
           if (newPosition >= maxScroll) {
-            // Reached the end, stop animation
+            // Content has fully scrolled off-screen, stop animation
             if (animationFrameRef.current !== null) {
               cancelAnimationFrame(animationFrameRef.current)
               animationFrameRef.current = null
+            }
+            setIsPaused(true)
+            // Notify parent that scrolling is complete
+            if (onComplete) {
+              onComplete()
             }
             return maxScroll
           }
@@ -101,7 +112,7 @@ export function useTeleprompterScroll({
       }
       lastTimeRef.current = 0
     }
-  }, [mode, isPaused, isPlaying, speed, getMaxScroll])
+  }, [mode, isPaused, isPlaying, speed, getMaxScroll, onComplete])
 
   // Reset scroll position when text changes
   useEffect(() => {

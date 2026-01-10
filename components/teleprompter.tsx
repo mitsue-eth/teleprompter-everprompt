@@ -9,7 +9,7 @@ import { TeleprompterControls } from "@/components/teleprompter-controls"
 import { Card } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
-import { FileText, Settings } from "lucide-react"
+import { FileText, Settings, Play, Pause, ChevronUp, ChevronDown, RotateCcw, Plus, Minus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export function Teleprompter() {
@@ -18,10 +18,17 @@ export function Teleprompter() {
   const [isEditorOpen, setIsEditorOpen] = React.useState(false)
   const [isControlsOpen, setIsControlsOpen] = React.useState(false)
   const [isMounted, setIsMounted] = React.useState(false)
+  const [isScrollingUp, setIsScrollingUp] = React.useState(false)
+  const [isScrollingDown, setIsScrollingDown] = React.useState(false)
 
   // Ensure component is mounted on client before rendering client-only features
   React.useEffect(() => {
     setIsMounted(true)
+  }, [])
+
+  const handleScrollComplete = React.useCallback(() => {
+    // Auto-pause when scrolling completes
+    setIsPlaying(false)
   }, [])
 
   const {
@@ -36,28 +43,77 @@ export function Teleprompter() {
     speed: settings.scrollSpeed,
     mode: settings.mode,
     isPlaying,
+    onComplete: handleScrollComplete,
   })
 
-  const handlePlayPause = () => {
+  const handlePlayPause = React.useCallback(() => {
     setIsPlaying((prev) => !prev)
-  }
+  }, [])
 
-  const handleScrollUp = () => {
+  const handleScrollUp = React.useCallback(() => {
     scrollBy(-50)
-  }
+    setIsScrollingUp(true)
+    setTimeout(() => setIsScrollingUp(false), 150)
+  }, [scrollBy])
 
-  const handleScrollDown = () => {
+  const handleScrollDown = React.useCallback(() => {
     scrollBy(50)
-  }
+    setIsScrollingDown(true)
+    setTimeout(() => setIsScrollingDown(false), 150)
+  }, [scrollBy])
 
-  const handleReset = () => {
+  const handleSpeedIncrease = React.useCallback(() => {
+    const newSpeed = Math.min(5.0, settings.scrollSpeed + 0.1)
+    updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100)
+  }, [settings.scrollSpeed, updateSetting])
+
+  const handleSpeedDecrease = React.useCallback(() => {
+    const newSpeed = Math.max(0.1, settings.scrollSpeed - 0.1)
+    updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100)
+  }, [settings.scrollSpeed, updateSetting])
+
+  const handleReset = React.useCallback(() => {
     reset()
     setIsPlaying(false)
-  }
+  }, [reset])
 
-  const handleWheelScroll = (delta: number) => {
+  const handleWheelScroll = React.useCallback((delta: number) => {
     scrollBy(delta)
-  }
+  }, [scrollBy])
+
+  // Keyboard shortcuts
+  React.useEffect(() => {
+    if (!isMounted) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only handle shortcuts when panels are closed
+      if (isEditorOpen || isControlsOpen) return
+
+      // Don't handle if user is typing in an input/textarea
+      const target = e.target as HTMLElement
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
+        return
+      }
+
+      // Space bar: play/pause
+      if (e.code === "Space") {
+        e.preventDefault()
+        handlePlayPause()
+      }
+
+      // Arrow keys: scroll up/down
+      if (e.code === "ArrowUp") {
+        e.preventDefault()
+        handleScrollUp()
+      } else if (e.code === "ArrowDown") {
+        e.preventDefault()
+        handleScrollDown()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [isMounted, isEditorOpen, isControlsOpen, handlePlayPause, handleScrollUp, handleScrollDown])
 
   // Load panel states from localStorage
   React.useEffect(() => {
@@ -178,6 +234,100 @@ export function Teleprompter() {
             onWheelScroll={handleWheelScroll}
             enableMarkdown={settings.enableMarkdown}
           />
+
+          {/* Floating Controls - only show when panels are closed */}
+          {isMounted && !isEditorOpen && !isControlsOpen && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2">
+              <div className="flex items-center gap-2 bg-background/90 backdrop-blur-sm border border-border/50 rounded-lg p-2 shadow-lg">
+                {/* Play/Pause Button */}
+                <Button
+                  variant={isPlaying ? "default" : "outline"}
+                  size="icon"
+                  onClick={handlePlayPause}
+                  className="h-10 w-10"
+                  title="Play/Pause (Space)"
+                >
+                  {isPlaying ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Play className="h-5 w-5" />
+                  )}
+                  <span className="sr-only">Play/Pause</span>
+                </Button>
+
+                {/* Speed Decrease Button */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSpeedDecrease}
+                  className="h-10 w-10"
+                  title="Decrease Speed"
+                >
+                  <Minus className="h-5 w-5" />
+                  <span className="sr-only">Decrease Speed</span>
+                </Button>
+
+                {/* Speed Display */}
+                <div className="px-3 py-2 text-sm font-medium text-foreground min-w-[3.5rem] text-center">
+                  {settings.scrollSpeed.toFixed(2)}x
+                </div>
+
+                {/* Speed Increase Button */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleSpeedIncrease}
+                  className="h-10 w-10"
+                  title="Increase Speed"
+                >
+                  <Plus className="h-5 w-5" />
+                  <span className="sr-only">Increase Speed</span>
+                </Button>
+
+                {/* Scroll Up Button */}
+                <Button
+                  variant={isScrollingUp ? "default" : "outline"}
+                  size="icon"
+                  onClick={handleScrollUp}
+                  className={cn(
+                    "h-10 w-10 transition-all",
+                    isScrollingUp && "scale-110"
+                  )}
+                  title="Scroll Up (↑)"
+                >
+                  <ChevronUp className="h-5 w-5" />
+                  <span className="sr-only">Scroll Up</span>
+                </Button>
+
+                {/* Scroll Down Button */}
+                <Button
+                  variant={isScrollingDown ? "default" : "outline"}
+                  size="icon"
+                  onClick={handleScrollDown}
+                  className={cn(
+                    "h-10 w-10 transition-all",
+                    isScrollingDown && "scale-110"
+                  )}
+                  title="Scroll Down (↓)"
+                >
+                  <ChevronDown className="h-5 w-5" />
+                  <span className="sr-only">Scroll Down</span>
+                </Button>
+
+                {/* Reset Button */}
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleReset}
+                  className="h-10 w-10"
+                  title="Reset"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                  <span className="sr-only">Reset</span>
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       </div>
     </>

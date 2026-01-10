@@ -21,8 +21,6 @@ interface TeleprompterControlsProps {
   onReset: () => void
 }
 
-const SPEED_STEPS = [0.1, 0.2, 0.3, 0.5, 0.7, 1.0, 1.5, 2.0, 3.0, 5.0]
-
 export function TeleprompterControls({
   settings,
   onSettingChange,
@@ -32,8 +30,10 @@ export function TeleprompterControls({
   onScrollDown,
   onReset,
 }: TeleprompterControlsProps) {
-  const speedIndex = SPEED_STEPS.indexOf(settings.scrollSpeed)
-  const speedSliderValue = speedIndex !== -1 ? [speedIndex] : [5] // Default to 1.0 if not found
+  // Speed range: 0.1x to 5.0x with 0.01x granularity for fine control
+  const MIN_SPEED = 0.1
+  const MAX_SPEED = 5.0
+  const SPEED_STEP = 0.01
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -135,26 +135,24 @@ export function TeleprompterControls({
               <div className="flex items-center justify-between">
                 <Label htmlFor="speed-slider">Speed</Label>
                 <span className="text-sm text-muted-foreground">
-                  {settings.scrollSpeed}x
+                  {settings.scrollSpeed.toFixed(2)}x
                 </span>
               </div>
               <Slider
                 id="speed-slider"
-                min={0}
-                max={SPEED_STEPS.length - 1}
-                step={1}
-                value={speedSliderValue}
+                min={MIN_SPEED}
+                max={MAX_SPEED}
+                step={SPEED_STEP}
+                value={[settings.scrollSpeed]}
                 onValueChange={(value) => {
-                  const index = value[0]
-                  if (index >= 0 && index < SPEED_STEPS.length) {
-                    onSettingChange("scrollSpeed", SPEED_STEPS[index])
-                  }
+                  const speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, value[0]))
+                  onSettingChange("scrollSpeed", Math.round(speed * 100) / 100) // Round to 2 decimal places
                 }}
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>0.1x</span>
-                <span>5.0x</span>
+                <span>{MIN_SPEED}x</span>
+                <span>{MAX_SPEED}x</span>
               </div>
             </div>
 
