@@ -88,7 +88,7 @@ export function AppSidebar({
       <div className="relative h-full flex flex-col">
         <SidebarBackground />
         
-        <SidebarHeader className="relative z-10 border-b border-sidebar-border/50 px-6 py-6 flex-shrink-0">
+        <SidebarHeader className="relative z-10 border-b border-sidebar-border/80 px-6 py-6 flex-shrink-0">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
