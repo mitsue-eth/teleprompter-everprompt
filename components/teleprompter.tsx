@@ -95,8 +95,8 @@ export function Teleprompter() {
       {/* Editor Panel */}
       {isMounted && (
         <Sheet open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-          <SheetContent side="left" className="w-[400px] sm:w-[540px]">
-            <SheetHeader>
+          <SheetContent side="left" className="w-[400px] sm:w-[540px] p-0">
+            <SheetHeader className="sr-only">
               <SheetTitle>Script Editor</SheetTitle>
             </SheetHeader>
             <TeleprompterEditor
@@ -111,8 +111,8 @@ export function Teleprompter() {
       {/* Controls Panel */}
       {isMounted && (
         <Sheet open={isControlsOpen} onOpenChange={setIsControlsOpen}>
-          <SheetContent side="right" className="w-[400px] sm:w-[540px]">
-            <SheetHeader>
+          <SheetContent side="right" className="w-[400px] sm:w-[540px] p-0">
+            <SheetHeader className="sr-only">
               <SheetTitle>Controls</SheetTitle>
             </SheetHeader>
             <TeleprompterControls

@@ -3,7 +3,9 @@
 import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Label } from "@/components/ui/label"
+import { EditorBackground } from "@/components/editor-background"
+import { FileText, X } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 interface TeleprompterEditorProps {
   text: string
@@ -57,34 +59,70 @@ export function TeleprompterEditor({ text, onTextChange, scrollSpeed }: Teleprom
   }
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <Label htmlFor="teleprompter-text" className="text-base font-semibold">
-          Script
-        </Label>
-        <div className="flex flex-col items-end gap-1 text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <span>{wordCount} words</span>
-            <span>{charCount} characters</span>
+    <div className="relative flex h-full flex-col overflow-hidden">
+      <EditorBackground />
+      
+      {/* Header */}
+      <div className="relative z-20 border-b border-border/50 px-6 py-5 pr-16">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted/30">
+            <FileText className="w-5 h-5 text-foreground/80" />
           </div>
-          <div className="text-xs">
-            Reading time: ~{readingTime}
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold text-foreground">Script Editor</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Write and edit your teleprompter script</p>
+          </div>
+        </div>
+        
+        {/* Stats */}
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Words:</span>
+            <span className="font-medium text-foreground">{wordCount}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground">Characters:</span>
+            <span className="font-medium text-foreground">{charCount}</span>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <span className="text-muted-foreground">Reading time:</span>
+            <span className="font-medium text-foreground">~{readingTime}</span>
           </div>
         </div>
       </div>
-      <Textarea
-        id="teleprompter-text"
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => onTextChange(e.target.value)}
-        onPaste={handlePaste}
-        placeholder="Enter your script here..."
-        className="flex-1 resize-none font-mono text-sm"
-      />
-      <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={handleClear}>
-          Clear
-        </Button>
+
+      {/* Editor Content */}
+      <div className="relative z-10 flex-1 flex flex-col p-6 gap-4 overflow-y-auto">
+        <Textarea
+          id="teleprompter-text"
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => onTextChange(e.target.value)}
+          onPaste={handlePaste}
+          placeholder="Enter your script here...&#10;&#10;You can paste text from any source. Line breaks and formatting will be preserved."
+          className={cn(
+            "flex-1 resize-none font-mono text-sm",
+            "bg-background/50 border-border/50",
+            "focus:bg-background focus:border-border",
+            "placeholder:text-muted-foreground/50",
+            "transition-colors"
+          )}
+        />
+        
+        <div className="flex items-center justify-between pt-2 border-t border-border/30">
+          <p className="text-xs text-muted-foreground">
+            Tip: Use line breaks to control pacing
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleClear}
+            className="gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
+          >
+            <X className="w-4 h-4" />
+            Clear
+          </Button>
+        </div>
       </div>
     </div>
   )
