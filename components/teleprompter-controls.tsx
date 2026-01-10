@@ -20,7 +20,8 @@ interface TeleprompterControlsProps {
   onPlayPause: () => void
   onScrollUp: () => void
   onScrollDown: () => void
-  onReset: () => void
+  onReset: () => void // Reset scroll position (for play controls)
+  onResetSettings?: () => void // Reset all settings to defaults (for settings panel)
 }
 
 export function TeleprompterControls({
@@ -31,6 +32,7 @@ export function TeleprompterControls({
   onScrollUp,
   onScrollDown,
   onReset,
+  onResetSettings,
 }: TeleprompterControlsProps) {
   // Speed range: 0.1x to 5.0x with 0.01x granularity for fine control
   const MIN_SPEED = 0.1
@@ -38,13 +40,14 @@ export function TeleprompterControls({
   const SPEED_STEP = 0.01
 
   // Collapsible section states
+  const [isTextAppearanceOpen, setIsTextAppearanceOpen] = React.useState(false)
   const [isTextPositionOpen, setIsTextPositionOpen] = React.useState(false)
   const [isCrosshairOpen, setIsCrosshairOpen] = React.useState(false)
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       {/* Header */}
-      <div className="border-b border-border/50 px-6 py-5 pr-16">
+      <div className="border-b border-border/50 px-6 py-5 pr-16 flex-shrink-0">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted/30">
             <Settings className="w-5 h-5 text-foreground/80" />
@@ -54,23 +57,27 @@ export function TeleprompterControls({
             <p className="text-xs text-muted-foreground mt-0.5">Adjust teleprompter settings</p>
           </div>
         </div>
-        <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onReset}
-            className="gap-2 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/20"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset
-          </Button>
-        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-6">
-          {/* Play/Pause and Mode */}
+          {/* Reset Settings Button */}
+          {onResetSettings && (
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={onResetSettings}
+                className="flex-1 gap-2"
+              >
+                <RotateCcw className="h-5 w-5" />
+                Reset Settings
+              </Button>
+            </div>
+          )}
+
+          {/* Play/Pause */}
           <div className="space-y-3">
             <div className="flex gap-2">
               <Button
@@ -92,47 +99,6 @@ export function TeleprompterControls({
                 )}
               </Button>
             </div>
-
-            <ToggleGroup
-              type="single"
-              value={settings.mode}
-              onValueChange={(value) => {
-                if (value === "auto" || value === "manual") {
-                  onSettingChange("mode", value)
-                }
-              }}
-              className="w-full"
-            >
-              <ToggleGroupItem value="auto" aria-label="Auto mode" className="flex-1">
-                Auto
-              </ToggleGroupItem>
-              <ToggleGroupItem value="manual" aria-label="Manual mode" className="flex-1">
-                Manual
-              </ToggleGroupItem>
-            </ToggleGroup>
-
-            {settings.mode === "manual" && (
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onScrollUp}
-                  className="flex-1 gap-2"
-                >
-                  <ChevronUp className="h-4 w-4" />
-                  Up
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onScrollDown}
-                  className="flex-1 gap-2"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                  Down
-                </Button>
-              </div>
-            )}
           </div>
 
           <div className="space-y-6 border-t border-border/30 pt-6">
@@ -174,7 +140,7 @@ export function TeleprompterControls({
                 id="font-size-slider"
                 min={12}
                 max={72}
-                step={2}
+                step={1}
                 value={[settings.fontSize]}
                 onValueChange={(value) => onSettingChange("fontSize", value[0])}
                 className="w-full"
@@ -195,17 +161,111 @@ export function TeleprompterControls({
               </div>
               <Slider
                 id="width-slider"
-                min={20}
+                min={10}
                 max={100}
-                step={5}
+                step={1}
                 value={[settings.textWidth]}
                 onValueChange={(value) => onSettingChange("textWidth", value[0])}
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
-                <span>20%</span>
+                <span>10%</span>
                 <span>100%</span>
               </div>
+            </div>
+
+            {/* Text Appearance - Collapsible Section */}
+            <div className="space-y-3 border-t border-border/30 pt-6">
+              <button
+                type="button"
+                onClick={() => setIsTextAppearanceOpen(!isTextAppearanceOpen)}
+                className="flex w-full items-center justify-between text-left cursor-pointer hover:text-foreground transition-colors"
+              >
+                <Label className="text-base font-semibold cursor-pointer">Text Appearance</Label>
+                {isTextAppearanceOpen ? (
+                  <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+              
+              {isTextAppearanceOpen && (
+                <div className="space-y-6 pt-3">
+                  {/* Text Opacity */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="text-opacity-slider">Opacity</Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.textOpacity}%
+                      </span>
+                    </div>
+                    <Slider
+                      id="text-opacity-slider"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[settings.textOpacity]}
+                      onValueChange={(value) => onSettingChange("textOpacity", value[0])}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+
+                  {/* Text Color */}
+                  <div className="space-y-3">
+                    <Label>Color</Label>
+                    <div className="grid grid-cols-6 gap-2">
+                      {[
+                        { name: "White", value: "#ffffff" },
+                        { name: "Black", value: "#000000" },
+                        { name: "Blue", value: "#3b82f6" },
+                        { name: "Red", value: "#ef4444" },
+                        { name: "Green", value: "#22c55e" },
+                        { name: "Yellow", value: "#eab308" },
+                        { name: "Purple", value: "#a855f7" },
+                        { name: "Orange", value: "#f97316" },
+                        { name: "Pink", value: "#ec4899" },
+                        { name: "Cyan", value: "#06b6d4" },
+                        { name: "Lime", value: "#84cc16" },
+                        { name: "Gray", value: "#94a3b8" },
+                      ].map((color) => (
+                        <button
+                          key={color.value}
+                          type="button"
+                          onClick={() => onSettingChange("textColor", color.value)}
+                          className={cn(
+                            "h-8 w-full rounded-md border-2 transition-all cursor-pointer",
+                            settings.textColor === color.value
+                              ? "border-foreground scale-110"
+                              : "border-border hover:border-foreground/50"
+                          )}
+                          style={{ backgroundColor: color.value }}
+                          title={color.name}
+                          aria-label={`Select ${color.name} color`}
+                        />
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label htmlFor="text-color-input" className="text-sm">
+                        Custom:
+                      </Label>
+                      <input
+                        id="text-color-input"
+                        type="color"
+                        value={settings.textColor}
+                        onChange={(e) => onSettingChange("textColor", e.target.value)}
+                        className="h-8 w-16 cursor-pointer rounded border border-border bg-background"
+                      />
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {settings.textColor}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Text Positioning - Collapsible Section */}
@@ -350,25 +410,25 @@ export function TeleprompterControls({
 
             {/* Camera Target - Collapsible Section */}
             <div className="space-y-3 border-t border-border/30 pt-6">
-              <button
-                type="button"
+              <div
                 onClick={() => setIsCrosshairOpen(!isCrosshairOpen)}
                 className="flex w-full items-center justify-between text-left cursor-pointer hover:text-foreground transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <Label className="text-base font-semibold cursor-pointer">Camera Lens Target</Label>
-                  <Checkbox
-                    checked={settings.showCrosshair}
-                    onCheckedChange={(checked) => onSettingChange("showCrosshair", checked === true)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={settings.showCrosshair}
+                      onCheckedChange={(checked) => onSettingChange("showCrosshair", checked === true)}
+                    />
+                  </div>
                 </div>
                 {isCrosshairOpen ? (
                   <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 )}
-              </button>
+              </div>
               
               {isCrosshairOpen && settings.showCrosshair && (
                 <div className="space-y-6 pt-3">

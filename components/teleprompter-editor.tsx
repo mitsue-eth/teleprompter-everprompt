@@ -4,19 +4,62 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { EditorBackground } from "@/components/editor-background"
-import { FileText, X } from "lucide-react"
+import { FileText, X, Edit, Clock } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 interface TeleprompterEditorProps {
   text: string
   onTextChange: (text: string) => void
   scrollSpeed: number
+  scriptName?: string
+  hasUnsavedChanges?: boolean
+  isSaving?: boolean
+  onRename?: (newName: string) => void
 }
 
-export function TeleprompterEditor({ text, onTextChange, scrollSpeed }: TeleprompterEditorProps) {
+export function TeleprompterEditor({
+  text,
+  onTextChange,
+  scrollSpeed,
+  scriptName,
+  hasUnsavedChanges = false,
+  isSaving = false,
+  onRename,
+}: TeleprompterEditorProps) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
+  const [isRenaming, setIsRenaming] = React.useState(false)
+  const [renameValue, setRenameValue] = React.useState("")
   const wordCount = text.trim() ? text.trim().split(/\s+/).length : 0
   const charCount = text.length
+
+  const handleRenameClick = () => {
+    if (onRename && scriptName) {
+      setRenameValue(scriptName)
+      setIsRenaming(true)
+    }
+  }
+
+  const handleRenameConfirm = () => {
+    if (onRename && renameValue.trim()) {
+      onRename(renameValue.trim())
+    }
+    setIsRenaming(false)
+    setRenameValue("")
+  }
+
+  const handleRenameCancel = () => {
+    setIsRenaming(false)
+    setRenameValue("")
+  }
 
   const calculateReadingTime = (wordCount: number, speed: number): string => {
     if (wordCount === 0) return "0 sec"
@@ -64,15 +107,34 @@ export function TeleprompterEditor({ text, onTextChange, scrollSpeed }: Teleprom
       
       {/* Header */}
       <div className="relative z-20 border-b border-border/50 px-6 py-5 pr-16">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-muted/30">
-            <FileText className="w-5 h-5 text-foreground/80" />
+        {/* Script Name with Edit Button */}
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h1 className="text-xl font-semibold text-foreground truncate">
+              {scriptName || "Untitled Script"}
+            </h1>
+            {isSaving && (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Saving...</span>
+            )}
+            {hasUnsavedChanges && !isSaving && (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">(Unsaved)</span>
+            )}
           </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-semibold text-foreground">Script Editor</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Write and edit your teleprompter script</p>
-          </div>
+          {onRename && scriptName && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRenameClick}
+              className="h-8 w-8 shrink-0"
+              title="Rename script"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
         </div>
+        
+        {/* Script Editor Label */}
+        <p className="text-xs text-muted-foreground mb-4">Script Editor</p>
         
         {/* Stats */}
         <div className="flex items-center gap-6 text-sm">
@@ -84,9 +146,9 @@ export function TeleprompterEditor({ text, onTextChange, scrollSpeed }: Teleprom
             <span className="text-muted-foreground">Characters:</span>
             <span className="font-medium text-foreground">{charCount}</span>
           </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <span className="text-muted-foreground">Reading time:</span>
-            <span className="font-medium text-foreground">~{readingTime}</span>
+          <div className="flex items-center gap-1.5 ml-auto" title={`Reading time: ~${readingTime}`}>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium text-foreground">~{readingTime}</span>
           </div>
         </div>
       </div>
@@ -124,6 +186,37 @@ export function TeleprompterEditor({ text, onTextChange, scrollSpeed }: Teleprom
           </Button>
         </div>
       </div>
+
+      {/* Rename Dialog */}
+      <Dialog open={isRenaming} onOpenChange={handleRenameCancel}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Script</DialogTitle>
+            <DialogDescription>Enter a new name for this script.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                handleRenameConfirm()
+              } else if (e.key === "Escape") {
+                handleRenameCancel()
+              }
+            }}
+            autoFocus
+            placeholder="Script name"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={handleRenameCancel}>
+              Cancel
+            </Button>
+            <Button onClick={handleRenameConfirm} disabled={!renameValue.trim()}>
+              Rename
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

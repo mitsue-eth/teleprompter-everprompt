@@ -25,6 +25,8 @@ interface TeleprompterDisplayProps {
   crosshairSize: number
   crosshairColor: string
   crosshairIntensity: number
+  textColor: string
+  textOpacity: number
   onOpenEditor?: () => void
 }
 
@@ -49,6 +51,8 @@ export function TeleprompterDisplay({
   crosshairSize,
   crosshairColor,
   crosshairIntensity,
+  textColor,
+  textOpacity,
   onOpenEditor,
 }: TeleprompterDisplayProps) {
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -199,6 +203,17 @@ export function TeleprompterDisplay({
   
   const horizontalPosStyle = getHorizontalStyle()
 
+  // Convert hex color to rgba with opacity
+  const hexToRgba = (hex: string, opacity: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const alpha = opacity / 100
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+
+  const textColorWithOpacity = hexToRgba(textColor, textOpacity)
+
   return (
     <div
       ref={containerRef}
@@ -232,7 +247,7 @@ export function TeleprompterDisplay({
           width: "100%",
           lineHeight: 1.6,
           padding: "2rem",
-          color: "var(--foreground)",
+          color: textColorWithOpacity,
           fontWeight: 400,
           letterSpacing: "0.01em",
           whiteSpace: "pre-wrap", // Preserve line breaks and whitespace

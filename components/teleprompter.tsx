@@ -3,6 +3,7 @@
 import * as React from "react"
 import { useTeleprompterSettings } from "@/hooks/use-teleprompter-settings"
 import { useTeleprompterScroll } from "@/hooks/use-teleprompter-scroll"
+import { useScripts } from "@/hooks/use-scripts"
 import { TeleprompterEditor } from "@/components/teleprompter-editor"
 import { TeleprompterDisplay } from "@/components/teleprompter-display"
 import { TeleprompterControls } from "@/components/teleprompter-controls"
@@ -11,13 +12,41 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Button } from "@/components/ui/button"
 import { FileText, Settings, Play, Pause, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { ScriptStatus } from "@/hooks/use-scripts"
 
 export interface TeleprompterRef {
   openSettings: () => void
+  openEditor: () => void
+  getScriptHandlers: () => {
+    scripts: ReturnType<typeof useScripts>["scripts"]
+    selectedScriptId: ReturnType<typeof useScripts>["selectedScriptId"]
+    onSelectScript: (id: string) => boolean
+    onCreateScript: () => void
+    onRenameScript: (id: string, name: string) => void
+    onDuplicateScript: (id: string) => void
+    onDeleteScript: (id: string) => void
+    onUpdateStatus: (id: string, status: ScriptStatus) => void
+  } | null
 }
 
 export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
-  const { settings, updateSetting, isLoaded } = useTeleprompterSettings()
+  const { settings, updateSetting, resetSettings, isLoaded: settingsLoaded } = useTeleprompterSettings()
+  const {
+    scripts,
+    selectedScript,
+    selectedScriptId,
+    isLoaded: scriptsLoaded,
+    hasUnsavedChanges,
+    createScript,
+    updateScriptContent,
+    updateScriptName,
+    updateScriptStatus,
+    duplicateScript,
+    deleteScript,
+    selectScript,
+    markUnsavedChanges,
+  } = useScripts()
+
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [isEditorOpen, setIsEditorOpen] = React.useState(false)
   const [isControlsOpen, setIsControlsOpen] = React.useState(false)
@@ -26,13 +55,102 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   const [isScrollingDown, setIsScrollingDown] = React.useState(false)
   const [isSpeedDecreasing, setIsSpeedDecreasing] = React.useState(false)
   const [isSpeedIncreasing, setIsSpeedIncreasing] = React.useState(false)
+  const [isResetting, setIsResetting] = React.useState(false)
+  const [isSaving, setIsSaving] = React.useState(false)
+  const [currentText, setCurrentText] = React.useState("")
 
-  // Expose method to open settings panel
+  const isLoaded = settingsLoaded && scriptsLoaded
+
+  // Get the current script text or fallback to settings.text for backward compatibility
+  const displayText = selectedScript?.content ?? currentText
+
+  // Expose methods to parent
   React.useImperativeHandle(ref, () => ({
     openSettings: () => {
       setIsControlsOpen(true)
     },
-  }), [])
+    openEditor: () => {
+      setIsEditorOpen(true)
+    },
+    getScriptHandlers: () => {
+      if (!isLoaded) return null
+      return {
+        scripts,
+        selectedScriptId,
+        onSelectScript: (id: string) => {
+          const success = selectScript(id, false)
+          if (!success) {
+            // If there are unsaved changes, show confirmation
+            const confirmed = window.confirm("You have unsaved changes. Do you want to discard them and switch scripts?")
+            if (confirmed) {
+              selectScript(id, true)
+              // Open editor after switching script
+              setIsEditorOpen(true)
+              return true
+            }
+            return false
+          }
+          // Open editor when script is selected
+          setIsEditorOpen(true)
+          return true
+        },
+        onCreateScript: () => {
+          const newScript = createScript()
+          // Open editor for the new script
+          setIsEditorOpen(true)
+          return newScript
+        },
+        onRenameScript: updateScriptName,
+        onDuplicateScript: (id: string) => {
+          const duplicated = duplicateScript(id)
+          // Open editor for the duplicated script
+          if (duplicated) {
+            setIsEditorOpen(true)
+          }
+          return duplicated
+        },
+        onDeleteScript: deleteScript,
+        onUpdateStatus: updateScriptStatus,
+      }
+    },
+  }), [isLoaded, scripts, selectedScriptId, selectScript, createScript, updateScriptName, duplicateScript, deleteScript, updateScriptStatus])
+
+  // Load selected script content when it changes
+  React.useEffect(() => {
+    if (selectedScript && isLoaded) {
+      setCurrentText(selectedScript.content)
+    } else if (!selectedScript && isLoaded && scripts.length === 0) {
+      // If no scripts exist, use settings.text as fallback
+      setCurrentText(settings.text)
+    }
+  }, [selectedScript, isLoaded, settings.text, scripts.length])
+
+  // Debounced auto-save
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout>()
+  React.useEffect(() => {
+    if (!isLoaded || !selectedScriptId) return
+
+    // Clear previous timeout
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+
+    // Set new timeout to save after 1 second of no changes
+    saveTimeoutRef.current = setTimeout(() => {
+      if (selectedScriptId && currentText !== selectedScript?.content) {
+        setIsSaving(true)
+        updateScriptContent(selectedScriptId, currentText)
+        // Clear saving indicator after a brief moment
+        setTimeout(() => setIsSaving(false), 500)
+      }
+    }, 1000)
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current)
+      }
+    }
+  }, [currentText, selectedScriptId, selectedScript?.content, isLoaded, updateScriptContent])
 
   // Ensure component is mounted on client before rendering client-only features
   React.useEffect(() => {
@@ -52,7 +170,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     containerRef,
     contentRef,
   } = useTeleprompterScroll({
-    text: settings.text,
+    text: displayText,
     speed: settings.scrollSpeed,
     mode: settings.mode,
     isPlaying,
@@ -92,6 +210,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   const handleReset = React.useCallback(() => {
     reset()
     setIsPlaying(false)
+    setIsResetting(true)
+    setTimeout(() => setIsResetting(false), 150) // Visual feedback duration
   }, [reset])
 
   const handleWheelScroll = React.useCallback((delta: number) => {
@@ -118,6 +238,12 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
         handlePlayPause()
       }
 
+      // ESC key: reset script
+      if (e.code === "Escape") {
+        e.preventDefault()
+        handleReset()
+      }
+
       // Arrow keys: scroll up/down, speed left/right
       if (e.code === "ArrowUp") {
         e.preventDefault()
@@ -136,7 +262,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
 
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isMounted, isEditorOpen, isControlsOpen, handlePlayPause, handleScrollUp, handleScrollDown, handleSpeedDecrease, handleSpeedIncrease])
+  }, [isMounted, isEditorOpen, isControlsOpen, handlePlayPause, handleScrollUp, handleScrollDown, handleSpeedDecrease, handleSpeedIncrease, handleReset])
 
   // Load panel states from localStorage
   React.useEffect(() => {
@@ -161,6 +287,13 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     }
   }, [isControlsOpen, isLoaded])
 
+  // Create a script if none exist (must be before any conditional returns)
+  React.useEffect(() => {
+    if (isLoaded && scripts.length === 0 && !selectedScriptId) {
+      createScript()
+    }
+  }, [isLoaded, scripts.length, selectedScriptId, createScript])
+
   if (!isLoaded || !isMounted) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -179,9 +312,18 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
               <SheetTitle>Script Editor</SheetTitle>
             </SheetHeader>
             <TeleprompterEditor
-              text={settings.text}
-              onTextChange={(text) => updateSetting("text", text)}
+              text={currentText}
+              onTextChange={(text) => {
+                setCurrentText(text)
+                markUnsavedChanges()
+              }}
               scrollSpeed={settings.scrollSpeed}
+              scriptName={selectedScript?.name}
+              hasUnsavedChanges={hasUnsavedChanges}
+              isSaving={isSaving}
+              onRename={selectedScriptId ? (newName: string) => {
+                updateScriptName(selectedScriptId, newName)
+              } : undefined}
             />
           </SheetContent>
         </Sheet>
@@ -202,6 +344,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
               onScrollUp={handleScrollUp}
               onScrollDown={handleScrollDown}
               onReset={handleReset}
+              onResetSettings={resetSettings}
             />
           </SheetContent>
         </Sheet>
@@ -243,7 +386,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           )}
 
           <TeleprompterDisplay
-            text={settings.text}
+            text={displayText}
             fontSize={settings.fontSize}
             textWidth={settings.textWidth}
             horizontalPosition={settings.horizontalPosition}
@@ -263,6 +406,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             crosshairSize={settings.crosshairSize}
             crosshairColor={settings.crosshairColor}
             crosshairIntensity={settings.crosshairIntensity}
+            textColor={settings.textColor}
+            textOpacity={settings.textOpacity}
             onOpenEditor={() => setIsEditorOpen(true)}
           />
 
@@ -353,11 +498,14 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
 
                 {/* Reset Button */}
                 <Button
-                  variant="outline"
+                  variant={isResetting ? "default" : "outline"}
                   size="icon"
                   onClick={handleReset}
-                  className="h-10 w-10"
-                  title="Reset"
+                  className={cn(
+                    "h-10 w-10 transition-all",
+                    isResetting && "scale-110"
+                  )}
+                  title="Reset (ESC)"
                 >
                   <RotateCcw className="h-5 w-5" />
                   <span className="sr-only">Reset</span>

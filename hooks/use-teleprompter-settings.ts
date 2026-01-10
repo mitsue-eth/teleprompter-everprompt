@@ -21,6 +21,8 @@ export interface TeleprompterSettings {
   crosshairSize: number // Crosshair size/radius (10-100px)
   crosshairColor: string // Crosshair color (hex format, e.g., "#3b82f6" for blue)
   crosshairIntensity: number // Crosshair color intensity/opacity (0-100, percentage)
+  textColor: string // Text color (hex format, e.g., "#ffffff" for white)
+  textOpacity: number // Text opacity/intensity (0-100, percentage)
 }
 
 const DEFAULT_SETTINGS: TeleprompterSettings = {
@@ -42,6 +44,8 @@ const DEFAULT_SETTINGS: TeleprompterSettings = {
   crosshairSize: 24, // 24px radius by default
   crosshairColor: "#3b82f6", // Blue color by default (#3b82f6 = blue-500)
   crosshairIntensity: 60, // 60% intensity/opacity by default
+  textColor: "#ffffff", // White color by default
+  textOpacity: 100, // 100% opacity by default (fully opaque)
 }
 
 const STORAGE_KEY = "teleprompter-settings"
