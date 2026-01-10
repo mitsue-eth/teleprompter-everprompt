@@ -14,6 +14,9 @@ export interface TeleprompterSettings {
   mode: "auto" | "manual"
   text: string
   enableMarkdown: boolean // Future: markdown support
+  showCrosshair: boolean // Show camera lens target crosshair
+  crosshairX: number // Crosshair X position (0-100, percentage from left)
+  crosshairY: number // Crosshair Y position (0-100, percentage from top)
 }
 
 const DEFAULT_SETTINGS: TeleprompterSettings = {
@@ -28,6 +31,9 @@ const DEFAULT_SETTINGS: TeleprompterSettings = {
   mode: "auto",
   text: "",
   enableMarkdown: false,
+  showCrosshair: true, // Show crosshair by default
+  crosshairX: 50, // Center horizontally by default
+  crosshairY: 50, // Center vertically by default
 }
 
 const STORAGE_KEY = "teleprompter-settings"

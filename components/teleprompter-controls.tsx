@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Play, Pause, ChevronUp, ChevronDown, RotateCcw, Settings } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
 import type { TeleprompterSettings } from "@/hooks/use-teleprompter-settings"
 
 interface TeleprompterControlsProps {
@@ -320,6 +321,67 @@ export function TeleprompterControls({
                   className="w-full"
                 />
               </div>
+            </div>
+
+            {/* Crosshair Target */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="crosshair-toggle">Camera Lens Target</Label>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="crosshair-toggle"
+                    checked={settings.showCrosshair}
+                    onCheckedChange={(checked) => onSettingChange("showCrosshair", checked === true)}
+                  />
+                  <Label htmlFor="crosshair-toggle" className="text-sm font-normal cursor-pointer">
+                    Show crosshair
+                  </Label>
+                </div>
+              </div>
+              
+              {settings.showCrosshair && (
+                <>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="crosshair-x-slider" className="text-sm">
+                        Horizontal Position
+                      </Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.crosshairX}%
+                      </span>
+                    </div>
+                    <Slider
+                      id="crosshair-x-slider"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[settings.crosshairX]}
+                      onValueChange={(value) => onSettingChange("crosshairX", value[0])}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="crosshair-y-slider" className="text-sm">
+                        Vertical Position
+                      </Label>
+                      <span className="text-sm text-muted-foreground">
+                        {settings.crosshairY}%
+                      </span>
+                    </div>
+                    <Slider
+                      id="crosshair-y-slider"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={[settings.crosshairY]}
+                      onValueChange={(value) => onSettingChange("crosshairY", value[0])}
+                      className="w-full"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { Crosshair } from "@/components/crosshair"
 
 interface TeleprompterDisplayProps {
   text: string
@@ -17,6 +18,9 @@ interface TeleprompterDisplayProps {
   contentRef: React.RefObject<HTMLDivElement | null>
   onWheelScroll: (delta: number) => void
   enableMarkdown: boolean
+  showCrosshair: boolean
+  crosshairX: number
+  crosshairY: number
 }
 
 export function TeleprompterDisplay({
@@ -33,6 +37,9 @@ export function TeleprompterDisplay({
   contentRef,
   onWheelScroll,
   enableMarkdown,
+  showCrosshair,
+  crosshairX,
+  crosshairY,
 }: TeleprompterDisplayProps) {
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault()
@@ -188,6 +195,12 @@ export function TeleprompterDisplay({
       onWheel={handleWheel}
       className="relative h-full w-full overflow-hidden bg-background"
     >
+      {/* Crosshair Target */}
+      <Crosshair
+        enabled={showCrosshair}
+        x={crosshairX}
+        y={crosshairY}
+      />
       <div
         ref={contentRef}
         className={cn(

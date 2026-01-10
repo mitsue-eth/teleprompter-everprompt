@@ -233,6 +233,9 @@ export function Teleprompter() {
             contentRef={contentRef}
             onWheelScroll={handleWheelScroll}
             enableMarkdown={settings.enableMarkdown}
+            showCrosshair={settings.showCrosshair}
+            crosshairX={settings.crosshairX}
+            crosshairY={settings.crosshairY}
           />
 
           {/* Floating Controls - only show when panels are closed */}
