@@ -126,7 +126,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   }, [selectedScript, isLoaded, settings.text, scripts.length])
 
   // Debounced auto-save
-  const saveTimeoutRef = React.useRef<NodeJS.Timeout>()
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
   React.useEffect(() => {
     if (!isLoaded || !selectedScriptId) return
 
