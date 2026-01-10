@@ -8,6 +8,7 @@ import { HelpDialog } from "@/components/help-dialog";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 
 export default function Home() {
+  // Main teleprompter application page
   const [isHelpDialogOpen, setIsHelpDialogOpen] = React.useState(false);
   const teleprompterRef = React.useRef<TeleprompterRef>(null);
 
