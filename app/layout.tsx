@@ -14,8 +14,20 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Teleprompter",
-  description: "Professional teleprompter for video recording",
+  title: "EverPrompt - Free Teleprompter for Video Recording",
+  description: "Professional teleprompter app for video recording. Free to use with local storage. Sync your scripts and settings online with premium.",
+  icons: {
+    icon: [
+      { url: "/logo-icon.svg", type: "image/svg+xml" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-icon.svg",
+  },
+  openGraph: {
+    title: "EverPrompt - Free Teleprompter",
+    description: "Professional teleprompter app for video recording",
+    type: "website",
+  },
 };
 
 export default function RootLayout({

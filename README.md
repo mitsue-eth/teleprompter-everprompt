@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# EverPrompt
+
+A professional teleprompter application for video recording. Free to use with local storage, with optional premium features for cloud sync.
+
+🌐 **Website**: [everprompt.ai](https://everprompt.ai)
+
+## Features
+
+- ✨ **Free & Local**: Use completely free with browser local storage
+- 🎬 **Professional Teleprompter**: Smooth scrolling text display optimized for video recording
+- 🎨 **Dark Mode**: Beautiful dark theme designed for recording environments
+- ⚙️ **Granular Controls**: Fine-tune font size, text width, positioning, and scroll speed
+- 📱 **Collapsible Panels**: Clean interface with hideable editor and controls
+- 🖱️ **Mouse Scroll Support**: Scroll through your script with mouse wheel
+- ⏱️ **Reading Time Estimation**: Know how long your script will take to read
+- 💾 **Settings Persistence**: All settings and scripts saved automatically
+- 🔄 **Auto & Manual Modes**: Automatic scrolling or manual step-by-step control
+
+## Tech Stack
+
+- **Next.js 16** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **shadcn/ui** - UI components
+- **Radix UI** - Accessible primitives
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/mitsue-eth/teleprompter-everprompt.git
+
+# Navigate to the project
+cd teleprompter-everprompt
+
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Usage
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Enter Your Script**: Click the editor button (top-left) to open the script editor
+2. **Adjust Settings**: Click the controls button (top-right) to fine-tune appearance and speed
+3. **Start Recording**: Click Play to begin auto-scrolling, or use manual mode for more control
+4. **Scroll Manually**: Use mouse wheel or arrow buttons to navigate through your script
 
-## Learn More
+## Premium Features (Coming Soon)
 
-To learn more about Next.js, take a look at the following resources:
+- ☁️ **Cloud Sync**: Access your scripts and settings from any device
+- 📚 **Script Library**: Save and organize multiple scripts
+- 👥 **Team Collaboration**: Share scripts with your team
+- 🎯 **Advanced Features**: Custom fonts, themes, and more
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+├── app/                    # Next.js app directory
+│   ├── layout.tsx         # Root layout with theme provider
+│   ├── page.tsx           # Main teleprompter page
+│   └── icon.svg           # App icon/favicon
+├── components/            # React components
+│   ├── teleprompter.tsx   # Main teleprompter component
+│   ├── teleprompter-editor.tsx    # Script editor
+│   ├── teleprompter-display.tsx   # Text display area
+│   ├── teleprompter-controls.tsx  # Control panel
+│   └── logo.tsx           # Logo component
+├── hooks/                 # Custom React hooks
+│   ├── use-teleprompter-settings.ts  # Settings management
+│   └── use-teleprompter-scroll.ts    # Scrolling logic
+└── public/               # Static assets
+    ├── logo.svg         # Full logo
+    └── logo-icon.svg    # Icon version
+```
 
-## Deploy on Vercel
+## Development
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# Development server
+npm run dev
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Build for production
+npm run build
+
+# Start production server
+npm start
+
+# Lint code
+npm run lint
+```
+
+## License
+
+This project is open source and available for free use.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+Made with ❤️ for content creators
