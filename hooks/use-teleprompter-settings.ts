@@ -7,8 +7,9 @@ export interface TeleprompterSettings {
   textWidth: number
   horizontalPosition: "left" | "center" | "right"
   verticalPosition: "top" | "center" | "bottom"
-  horizontalOffset: number // 0-100, fine-tune horizontal position
-  verticalOffset: number // 0-100, fine-tune vertical position
+  horizontalOffset: number // -50 to +50, relative offset from preset position
+  verticalOffset: number // -50 to +50, relative offset from preset position
+  textAlign: "left" | "center" | "right" | "justify" // Text alignment for paragraphs
   scrollSpeed: number
   mode: "auto" | "manual"
   text: string
@@ -20,8 +21,9 @@ const DEFAULT_SETTINGS: TeleprompterSettings = {
   textWidth: 80,
   horizontalPosition: "center",
   verticalPosition: "center",
-  horizontalOffset: 50, // Center by default
-  verticalOffset: 50, // Center by default
+  horizontalOffset: 0, // 0% offset by default (relative to preset)
+  verticalOffset: 0, // 0% offset by default (relative to preset)
+  textAlign: "center", // Center aligned by default
   scrollSpeed: 1.0,
   mode: "auto",
   text: "",

@@ -171,6 +171,7 @@ export function Teleprompter() {
             verticalPosition={settings.verticalPosition}
             horizontalOffset={settings.horizontalOffset}
             verticalOffset={settings.verticalOffset}
+            textAlign={settings.textAlign}
             scrollPosition={scrollPosition}
             containerRef={containerRef}
             contentRef={contentRef}

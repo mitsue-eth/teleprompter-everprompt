@@ -204,6 +204,34 @@ export function TeleprompterControls({
               </div>
             </div>
 
+            {/* Text Alignment */}
+            <div className="space-y-3">
+              <Label>Text Alignment</Label>
+              <ToggleGroup
+                type="single"
+                value={settings.textAlign}
+                onValueChange={(value) => {
+                  if (value === "left" || value === "center" || value === "right" || value === "justify") {
+                    onSettingChange("textAlign", value)
+                  }
+                }}
+                className="w-full"
+              >
+                <ToggleGroupItem value="left" aria-label="Left align" className="flex-1">
+                  Left
+                </ToggleGroupItem>
+                <ToggleGroupItem value="center" aria-label="Center align" className="flex-1">
+                  Center
+                </ToggleGroupItem>
+                <ToggleGroupItem value="right" aria-label="Right align" className="flex-1">
+                  Right
+                </ToggleGroupItem>
+                <ToggleGroupItem value="justify" aria-label="Justify" className="flex-1">
+                  Justify
+                </ToggleGroupItem>
+              </ToggleGroup>
+            </div>
+
             {/* Horizontal Position */}
             <div className="space-y-3">
               <Label>Horizontal Position</Label>
@@ -212,15 +240,9 @@ export function TeleprompterControls({
                 value={settings.horizontalPosition}
                 onValueChange={(value) => {
                   if (value === "left" || value === "center" || value === "right") {
+                    // Always reset offset to 0 when switching presets
                     onSettingChange("horizontalPosition", value)
-                    // Update offset when preset is selected
-                    if (value === "left") {
-                      onSettingChange("horizontalOffset", 0)
-                    } else if (value === "center") {
-                      onSettingChange("horizontalOffset", 50)
-                    } else if (value === "right") {
-                      onSettingChange("horizontalOffset", 100)
-                    }
+                    onSettingChange("horizontalOffset", 0)
                   }
                 }}
                 className="w-full"
@@ -241,13 +263,13 @@ export function TeleprompterControls({
                     Fine-tune
                   </Label>
                   <span className="text-sm text-muted-foreground">
-                    {settings.horizontalOffset}%
+                    {settings.horizontalOffset > 0 ? "+" : ""}{settings.horizontalOffset}%
                   </span>
                 </div>
                 <Slider
                   id="horizontal-offset-slider"
-                  min={0}
-                  max={100}
+                  min={-50}
+                  max={50}
                   step={1}
                   value={[settings.horizontalOffset]}
                   onValueChange={(value) => onSettingChange("horizontalOffset", value[0])}
@@ -264,15 +286,9 @@ export function TeleprompterControls({
                 value={settings.verticalPosition}
                 onValueChange={(value) => {
                   if (value === "top" || value === "center" || value === "bottom") {
+                    // Always reset offset to 0 when switching presets
                     onSettingChange("verticalPosition", value)
-                    // Update offset when preset is selected
-                    if (value === "top") {
-                      onSettingChange("verticalOffset", 0)
-                    } else if (value === "center") {
-                      onSettingChange("verticalOffset", 50)
-                    } else if (value === "bottom") {
-                      onSettingChange("verticalOffset", 100)
-                    }
+                    onSettingChange("verticalOffset", 0)
                   }
                 }}
                 className="w-full"
@@ -293,13 +309,13 @@ export function TeleprompterControls({
                     Fine-tune
                   </Label>
                   <span className="text-sm text-muted-foreground">
-                    {settings.verticalOffset}%
+                    {settings.verticalOffset > 0 ? "+" : ""}{settings.verticalOffset}%
                   </span>
                 </div>
                 <Slider
                   id="vertical-offset-slider"
-                  min={0}
-                  max={100}
+                  min={-50}
+                  max={50}
                   step={1}
                   value={[settings.verticalOffset]}
                   onValueChange={(value) => onSettingChange("verticalOffset", value[0])}
