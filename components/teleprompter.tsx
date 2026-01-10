@@ -352,7 +352,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
 
       <div className="relative flex h-[calc(100vh-var(--header-height)-3rem)] gap-4 px-4 lg:px-6">
         {/* Center Panel - Display */}
-        <div className="relative flex-1 overflow-hidden rounded-lg border-2 border-border bg-black/60 shadow-2xl">
+        <div className="relative flex-1 overflow-hidden rounded-lg border-2 border-border/90 bg-black/70 shadow-2xl ring-1 ring-border/50">
           {/* Editor Button - positioned in top-left corner of display area */}
           {isMounted && !isEditorOpen && (
             <Sheet open={isEditorOpen} onOpenChange={setIsEditorOpen}>
