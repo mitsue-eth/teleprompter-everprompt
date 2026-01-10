@@ -20,7 +20,9 @@ import {
   SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { NavScripts } from "@/components/nav-scripts"
 import { cn } from "@/lib/utils"
+import type { Script, ScriptStatus } from "@/hooks/use-scripts"
 
 const navItems = [
   {
@@ -33,9 +35,29 @@ const navItems = [
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onSettingsClick?: () => void
   onHelpClick?: () => void
+  scripts?: Script[]
+  selectedScriptId?: string | null
+  onSelectScript?: (id: string) => boolean
+  onCreateScript?: () => void
+  onRenameScript?: (id: string, name: string) => void
+  onDuplicateScript?: (id: string) => void
+  onDeleteScript?: (id: string) => void
+  onUpdateStatus?: (id: string, status: ScriptStatus) => void
 }
 
-export function AppSidebar({ onSettingsClick, onHelpClick, ...props }: AppSidebarProps) {
+export function AppSidebar({
+  onSettingsClick,
+  onHelpClick,
+  scripts = [],
+  selectedScriptId = null,
+  onSelectScript,
+  onCreateScript,
+  onRenameScript,
+  onDuplicateScript,
+  onDeleteScript,
+  onUpdateStatus,
+  ...props
+}: AppSidebarProps) {
   const { setOpen, setOpenMobile, isMobile } = useSidebar()
 
   const handleSettingsClick = (e: React.MouseEvent) => {
@@ -91,8 +113,8 @@ export function AppSidebar({ onSettingsClick, onHelpClick, ...props }: AppSideba
           </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent className="relative z-10 px-4 py-6 flex-1">
-          <div className="space-y-1">
+        <SidebarContent className="relative z-10 px-4 py-6 flex-1 overflow-y-auto">
+          <div className="space-y-1 mb-6">
             {navItems.map((item) => (
               <SidebarMenu key={item.title}>
                 <SidebarMenuItem>
@@ -114,6 +136,27 @@ export function AppSidebar({ onSettingsClick, onHelpClick, ...props }: AppSideba
               </SidebarMenu>
             ))}
           </div>
+
+          {/* Scripts Section */}
+          {onSelectScript &&
+            onCreateScript &&
+            onRenameScript &&
+            onDuplicateScript &&
+            onDeleteScript &&
+            onUpdateStatus && (
+              <div className="border-t border-sidebar-border/50 pt-6">
+                <NavScripts
+                  scripts={scripts}
+                  selectedScriptId={selectedScriptId}
+                  onSelectScript={onSelectScript}
+                  onCreateScript={onCreateScript}
+                  onRenameScript={onRenameScript}
+                  onDuplicateScript={onDuplicateScript}
+                  onDeleteScript={onDeleteScript}
+                  onUpdateStatus={onUpdateStatus}
+                />
+              </div>
+            )}
         </SidebarContent>
 
         <SidebarFooter className="relative z-10 border-t border-sidebar-border/50 px-4 py-4 mt-auto flex-shrink-0">
