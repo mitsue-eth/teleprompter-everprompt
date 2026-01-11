@@ -1,14 +1,14 @@
-"use client"
+"use client";
 
-import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { Shield } from "lucide-react"
+} from "@/components/ui/tooltip";
+import { Shield } from "lucide-react";
 
 export function SiteHeader() {
   return (
@@ -19,7 +19,7 @@ export function SiteHeader() {
           orientation="vertical"
           className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <h1 className="text-base font-medium">EverPrompt</h1>
+        <h1 className="text-base font-medium">Teleprompter</h1>
         <div className="ml-auto">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -33,12 +33,13 @@ export function SiteHeader() {
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs">
               <p className="text-sm">
-                Your scripts are stored locally in your browser. We never see your data.
+                Your scripts are stored locally in your browser. We never see
+                your data.
               </p>
             </TooltipContent>
           </Tooltip>
         </div>
       </div>
     </header>
-  )
+  );
 }
