@@ -76,7 +76,8 @@ export function TeleprompterEditor({
       if (seconds === 0) {
         return `${minutes} min`
       }
-      return `${minutes} min ${seconds} sec`
+      // Format as "1:14" instead of "1 min 14 sec" for more compact display
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`
     }
   }
 
@@ -146,8 +147,8 @@ export function TeleprompterEditor({
             <span className="text-muted-foreground">Characters:</span>
             <span className="font-medium text-foreground">{charCount}</span>
           </div>
-          <div className="flex items-center gap-1.5 ml-auto" title={`Reading time: ~${readingTime}`}>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-1.5 ml-auto whitespace-nowrap" title={`Reading time: ~${readingTime.includes(':') ? readingTime.replace(':', ' min ') + ' sec' : readingTime}`}>
+            <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="text-sm font-medium text-foreground">~{readingTime}</span>
           </div>
         </div>
