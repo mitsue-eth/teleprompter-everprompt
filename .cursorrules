@@ -1,0 +1,280 @@
+# EverPrompt Teleprompter - Cursor Rules
+
+## Project Overview
+This is a Next.js-based teleprompter application that allows users to create, manage, and display scripts with markdown support. The app features a multi-script management system with localStorage persistence, an enhanced markdown editor, and customizable teleprompter display settings.
+
+## Tech Stack
+- **Framework**: Next.js 16.1.1 (App Router)
+- **React**: 19.2.3
+- **TypeScript**: 5.x (strict mode enabled)
+- **Styling**: Tailwind CSS 4.x
+- **UI Components**: Shadcn UI (Radix UI primitives)
+- **Icons**: Lucide React
+- **Markdown**: react-markdown with remark-gfm
+- **Syntax Highlighting**: react-syntax-highlighter
+- **State Management**: React hooks + localStorage
+
+## Project Structure
+```
+/app                    # Next.js app directory (App Router)
+  /dashboard            # Dashboard pages
+  page.tsx              # Main teleprompter page
+  layout.tsx            # Root layout
+  globals.css           # Global styles
+
+/components             # React components
+  /ui                   # Shadcn UI components (reusable primitives)
+  teleprompter.tsx      # Main teleprompter orchestrator
+  teleprompter-display.tsx    # Display component
+  teleprompter-editor.tsx     # Basic editor panel
+  teleprompter-controls.tsx   # Settings/controls panel
+  enhanced-script-editor.tsx  # Advanced markdown editor
+  app-sidebar.tsx       # Main sidebar
+  nav-scripts.tsx       # Scripts navigation component
+  [other components]
+
+/hooks                  # Custom React hooks
+  use-scripts.ts        # Script CRUD operations + localStorage
+  use-teleprompter-settings.ts  # Settings management
+  use-teleprompter-scroll.ts    # Scroll position management
+  use-mobile.ts         # Mobile detection
+
+/lib                    # Utility functions
+  utils.ts              # cn() helper for className merging
+```
+
+## Coding Conventions
+
+### TypeScript
+- Use strict TypeScript with proper typing
+- Define interfaces for all data structures (e.g., `Script`, `TeleprompterSettings`)
+- Use type exports: `export type ScriptStatus = "draft" | "ready" | "completed"`
+- Prefer `interface` over `type` for object shapes
+- Use `React.useState`, `React.useEffect`, etc. (explicit React namespace)
+
+### React Patterns
+- All components are client components (`"use client"`)
+- Use functional components with hooks
+- Prefer `useCallback` for event handlers passed as props
+- Use `useRef` for DOM references and timeouts
+- Use `useImperativeHandle` when exposing methods to parent components
+- Always handle loading states (`isLoaded`) before accessing localStorage
+
+### Component Structure
+```typescript
+"use client"
+
+import * as React from "react"
+import { Component } from "@/components/ui/component"
+import { cn } from "@/lib/utils"
+
+interface ComponentProps {
+  // Props interface
+}
+
+export function Component({ prop }: ComponentProps) {
+  // Hooks
+  // State
+  // Effects
+  // Handlers
+  // Render
+}
+```
+
+### State Management
+- **Scripts**: Managed via `useScripts` hook with localStorage persistence
+- **Settings**: Managed via `useTeleprompterSettings` hook with localStorage
+- **Local State**: Use `useState` for component-specific state
+- **Derived State**: Use `useMemo` for expensive calculations
+
+### localStorage Patterns
+- Always check `isLoaded` before reading/writing to localStorage
+- Wrap localStorage operations in try-catch blocks
+- Use versioning for future migrations (see `SCRIPTS_VERSION_KEY`)
+- Validate and migrate data on load
+- Provide default values for missing data
+
+### Styling
+- Use Tailwind CSS utility classes
+- Use `cn()` helper from `@/lib/utils` for conditional classes
+- Prefer Tailwind classes over inline styles
+- Use inline styles only for dynamic values (colors, positions, etc.)
+- Follow Shadcn UI component patterns
+- Use semantic color tokens: `bg-background`, `text-foreground`, `border-border`, etc.
+
+### Component Naming
+- Use PascalCase for component files: `teleprompter-display.tsx`
+- Use PascalCase for component names: `TeleprompterDisplay`
+- Use kebab-case for file names: `nav-scripts.tsx`
+- Prefix UI components in `/components/ui/` with their base name
+
+### Props and Interfaces
+- Always define explicit prop interfaces
+- Use descriptive prop names
+- Mark optional props with `?`
+- Provide default values when appropriate
+- Use discriminated unions for variant props
+
+### Event Handlers
+- Use descriptive names: `handleTextChange`, `onSelectScript`
+- Prefix callbacks passed as props with `on`: `onTextChange`, `onOpenChange`
+- Use `useCallback` for handlers passed to child components
+- Handle errors gracefully with try-catch
+
+### Error Handling
+- Always wrap localStorage operations in try-catch
+- Log errors to console with descriptive messages
+- Provide fallback behavior (e.g., default values)
+- Don't crash the app on localStorage errors
+
+## Key Patterns
+
+### localStorage Versioning
+```typescript
+const SCRIPTS_VERSION_KEY = "teleprompter-scripts-version"
+const CURRENT_VERSION = 1 // Increment when schema changes
+
+// Check version on load
+const storedVersion = localStorage.getItem(SCRIPTS_VERSION_KEY)
+const version = storedVersion ? parseInt(storedVersion, 10) : 0
+
+// Migrate if needed
+if (version < CURRENT_VERSION) {
+  // Migration logic
+  localStorage.setItem(SCRIPTS_VERSION_KEY, CURRENT_VERSION.toString())
+}
+```
+
+### Data Validation
+- Always validate data loaded from localStorage
+- Provide defaults for missing fields
+- Ensure arrays are actually arrays
+- Validate enum values (e.g., ScriptStatus)
+
+### Debouncing
+- Use debouncing for auto-save (1-second delay)
+- Clear timeouts on unmount
+- Use `useRef` to store timeout references
+
+### Conditional Rendering
+- Use early returns for loading states
+- Use `&&` for simple conditionals
+- Use ternary for two-state conditionals
+- Prefer `cn()` for conditional classes
+
+## UI/UX Patterns
+
+### Buttons
+- Use Shadcn Button component with variants: `default`, `outline`, `ghost`
+- Use appropriate sizes: `sm`, `default`, `lg`
+- Add tooltips for icon-only buttons
+- Use `sr-only` for screen reader text
+
+### Dialogs and Sheets
+- Use `Dialog` for modals (enhanced editor)
+- Use `Sheet` for side panels (editor, controls)
+- Handle `onOpenChange` for close events
+- Check for unsaved changes before closing
+
+### Forms and Inputs
+- Use Shadcn form components
+- Provide visual feedback for saving states
+- Show "Saving..." and "(Unsaved)" indicators
+- Auto-save with debouncing
+
+### Markdown Rendering
+- Use `react-markdown` with `remarkGfm` plugin
+- Provide custom components for styling
+- Use inline styles for dynamic colors
+- Support syntax highlighting for code blocks
+
+## File Organization
+
+### Imports Order
+1. React and React-related
+2. Third-party libraries
+3. UI components
+4. Custom components
+5. Hooks
+6. Utils
+7. Types (if separate file)
+
+### Export Patterns
+- Use named exports for components
+- Use `export type` for TypeScript types
+- Use `export interface` for interfaces
+- Export hooks as named exports
+
+## Best Practices
+
+1. **Accessibility**
+   - Use semantic HTML
+   - Add `sr-only` text for icon-only buttons
+   - Ensure keyboard navigation works
+   - Use proper ARIA labels
+
+2. **Performance**
+   - Use `useMemo` for expensive calculations
+   - Use `useCallback` for stable function references
+   - Debounce auto-save operations
+   - Lazy load heavy components if needed
+
+3. **Code Quality**
+   - Keep components focused and single-purpose
+   - Extract reusable logic into hooks
+   - Use TypeScript strictly
+   - Handle edge cases (empty arrays, null values, etc.)
+
+4. **User Experience**
+   - Provide loading states
+   - Show save status feedback
+   - Handle unsaved changes gracefully
+   - Preserve user data across updates (versioning)
+
+5. **Git Workflow**
+   - Create feature branches for new features
+   - Write descriptive commit messages
+   - Test before merging to main
+   - Don't push on every change (user preference)
+
+## Common Tasks
+
+### Adding a New Script Field
+1. Update `Script` interface in `hooks/use-scripts.ts`
+2. Update `validateAndMigrateScripts` to handle new field
+3. Increment `CURRENT_VERSION` if breaking change
+4. Add migration logic if needed
+
+### Adding a New Setting
+1. Update `TeleprompterSettings` interface
+2. Add default value to `DEFAULT_SETTINGS`
+3. Add UI control in `teleprompter-controls.tsx`
+4. Apply setting in relevant component
+
+### Creating a New Component
+1. Create file in appropriate directory
+2. Use `"use client"` directive
+3. Define props interface
+4. Follow component structure pattern
+5. Use Shadcn UI components when possible
+6. Add proper TypeScript types
+
+## Dependencies to Know
+
+- **@radix-ui/***: Headless UI primitives (used by Shadcn)
+- **lucide-react**: Icon library
+- **react-markdown**: Markdown rendering
+- **remark-gfm**: GitHub Flavored Markdown support
+- **react-syntax-highlighter**: Code syntax highlighting
+- **tailwind-merge**: Merge Tailwind classes
+- **class-variance-authority**: Component variants
+- **clsx**: Conditional class names
+
+## Notes
+
+- The app uses localStorage for persistence (no backend)
+- Scripts are stored with versioning for future migrations
+- Settings are stored separately from scripts
+- The enhanced editor is a separate modal component
+- Markdown support is optional and can be toggled
+- All components are client-side (Next.js App Router)
