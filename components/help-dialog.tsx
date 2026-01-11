@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Heart } from "lucide-react"
+import { ExternalLink, Heart, Shield } from "lucide-react"
 import { YouTubeLogo } from "@/components/youtube-logo"
 import { cn } from "@/lib/utils"
 
@@ -61,6 +61,23 @@ export function HelpDialog({ open, onOpenChange }: HelpDialogProps) {
               EverPrompt is designed to be a comprehensive platform for content creators, 
               with Teleprompter as our flagship feature. More tools and features are coming soon.
             </p>
+
+            {/* Privacy & Data Security Section */}
+            <div className="bg-primary/5 rounded-lg p-4 space-y-3 border border-primary/20">
+              <div className="flex items-start gap-3">
+                <Shield className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+                <div className="space-y-1 flex-1">
+                  <p className="text-sm font-medium text-foreground">
+                    Your Privacy Matters
+                  </p>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    All your scripts and settings are stored locally in your browser using localStorage. 
+                    This means your content never leaves your device, and we have absolutely no access 
+                    to your scripts or data. Your privacy is built into the foundation of this tool.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="bg-muted/50 rounded-lg p-4 space-y-3 border border-border/50">
               <div className="flex items-start gap-3">
