@@ -5,6 +5,7 @@ import { useTeleprompterSettings } from "@/hooks/use-teleprompter-settings"
 import { useTeleprompterScroll } from "@/hooks/use-teleprompter-scroll"
 import { useScripts } from "@/hooks/use-scripts"
 import { TeleprompterEditor } from "@/components/teleprompter-editor"
+import { EnhancedScriptEditor } from "@/components/enhanced-script-editor"
 import { TeleprompterDisplay } from "@/components/teleprompter-display"
 import { TeleprompterControls } from "@/components/teleprompter-controls"
 import { Card } from "@/components/ui/card"
@@ -50,6 +51,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   const [isPlaying, setIsPlaying] = React.useState(false)
   const [isEditorOpen, setIsEditorOpen] = React.useState(false)
   const [isControlsOpen, setIsControlsOpen] = React.useState(false)
+  const [isEnhancedEditorOpen, setIsEnhancedEditorOpen] = React.useState(false)
   const [isMounted, setIsMounted] = React.useState(false)
   const [isScrollingUp, setIsScrollingUp] = React.useState(false)
   const [isScrollingDown, setIsScrollingDown] = React.useState(false)
@@ -324,9 +326,27 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
               onRename={selectedScriptId ? (newName: string) => {
                 updateScriptName(selectedScriptId, newName)
               } : undefined}
+              onOpenEnhancedEditor={() => setIsEnhancedEditorOpen(true)}
             />
           </SheetContent>
         </Sheet>
+      )}
+
+      {/* Enhanced Editor Modal */}
+      {isMounted && (
+        <EnhancedScriptEditor
+          text={currentText}
+          onTextChange={(text) => {
+            setCurrentText(text)
+            markUnsavedChanges()
+          }}
+          scriptName={selectedScript?.name}
+          isOpen={isEnhancedEditorOpen}
+          onOpenChange={setIsEnhancedEditorOpen}
+          hasUnsavedChanges={hasUnsavedChanges}
+          isSaving={isSaving}
+          scrollSpeed={settings.scrollSpeed}
+        />
       )}
 
       {/* Controls Panel */}

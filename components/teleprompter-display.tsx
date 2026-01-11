@@ -3,6 +3,10 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 import { Crosshair } from "@/components/crosshair"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import { Button } from "@/components/ui/button"
+import { Type, Eye } from "lucide-react"
 
 interface TeleprompterDisplayProps {
   text: string
@@ -28,6 +32,7 @@ interface TeleprompterDisplayProps {
   textColor: string
   textOpacity: number
   onOpenEditor?: () => void
+  showMarkdownToggle?: boolean
 }
 
 export function TeleprompterDisplay({
@@ -54,7 +59,9 @@ export function TeleprompterDisplay({
   textColor,
   textOpacity,
   onOpenEditor,
+  showMarkdownToggle = true,
 }: TeleprompterDisplayProps) {
+  const [showMarkdownView, setShowMarkdownView] = React.useState(enableMarkdown)
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault()
     const delta = e.deltaY > 0 ? 30 : -30 // Scroll down = forward, up = backward
@@ -116,15 +123,127 @@ export function TeleprompterDisplay({
     return verticalOffset
   }
 
-  // Future: Markdown renderer (placeholder)
+  // Sync local state with prop
+  React.useEffect(() => {
+    setShowMarkdownView(enableMarkdown)
+  }, [enableMarkdown])
+
+  // Convert hex color to rgba with opacity
+  const hexToRgba = (hex: string, opacity: number): string => {
+    const r = parseInt(hex.slice(1, 3), 16)
+    const g = parseInt(hex.slice(3, 5), 16)
+    const b = parseInt(hex.slice(5, 7), 16)
+    const alpha = opacity / 100
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`
+  }
+
+  const textColorWithOpacity = hexToRgba(textColor, textOpacity)
+
+  // Markdown renderer with colors
   const renderMarkdown = (text: string): React.ReactNode => {
-    // This is a placeholder for future markdown support
-    // When implementing, use a library like react-markdown
-    if (!enableMarkdown) {
+    if (!showMarkdownView) {
       return text
     }
-    // For now, just return text
-    return text
+    
+    // Calculate colors based on text color
+    const isDark = textColor.toLowerCase() === "#ffffff" || textColor.toLowerCase() === "#fff"
+    const strongColor = isDark ? "#fbbf24" : "#d97706" // Amber/yellow for bold
+    const emColor = isDark ? "#a78bfa" : "#7c3aed" // Purple for italic
+    const headingColor = isDark ? "#60a5fa" : "#2563eb" // Blue for headings
+    const codeBg = isDark ? "rgba(255, 255, 255, 0.1)" : "rgba(0, 0, 0, 0.1)"
+    const codeColor = isDark ? "#34d399" : "#059669" // Green for code
+    const linkColor = isDark ? "#60a5fa" : "#2563eb" // Blue for links
+    const blockquoteColor = isDark ? "rgba(255, 255, 255, 0.6)" : "rgba(0, 0, 0, 0.6)"
+    const blockquoteBorder = isDark ? "rgba(255, 255, 255, 0.3)" : "rgba(0, 0, 0, 0.3)"
+    
+    return (
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          // Style markdown elements with colors
+          p: ({ children }) => <p style={{ marginBottom: "1em", lineHeight: "1.6", color: textColorWithOpacity }}>{children}</p>,
+          strong: ({ children }) => (
+            <strong style={{ fontWeight: 700, color: strongColor }}>
+              {children}
+            </strong>
+          ),
+          em: ({ children }) => (
+            <em style={{ fontStyle: "italic", color: emColor }}>
+              {children}
+            </em>
+          ),
+          h1: ({ children }) => (
+            <h1 style={{ fontSize: "1.8em", fontWeight: 700, margin: "0.75em 0", color: headingColor }}>
+              {children}
+            </h1>
+          ),
+          h2: ({ children }) => (
+            <h2 style={{ fontSize: "1.5em", fontWeight: 700, margin: "0.75em 0", color: headingColor }}>
+              {children}
+            </h2>
+          ),
+          h3: ({ children }) => (
+            <h3 style={{ fontSize: "1.3em", fontWeight: 600, margin: "0.75em 0", color: headingColor }}>
+              {children}
+            </h3>
+          ),
+          ul: ({ children }) => (
+            <ul style={{ margin: "0.5em 0", paddingLeft: "1.5em", listStyleType: "disc", color: textColorWithOpacity }}>
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol style={{ margin: "0.5em 0", paddingLeft: "1.5em", listStyleType: "decimal", color: textColorWithOpacity }}>
+              {children}
+            </ol>
+          ),
+          li: ({ children }) => (
+            <li style={{ margin: "0.25em 0", color: textColorWithOpacity }}>{children}</li>
+          ),
+          code: ({ children }) => (
+            <code
+              style={{
+                backgroundColor: codeBg,
+                padding: "0.2em 0.4em",
+                borderRadius: "3px",
+                fontFamily: "monospace",
+                fontSize: "0.9em",
+                color: codeColor,
+              }}
+            >
+              {children}
+            </code>
+          ),
+          a: ({ children, href }) => (
+            <a
+              href={href}
+              style={{
+                color: linkColor,
+                textDecoration: "underline",
+                textDecorationColor: linkColor,
+              }}
+            >
+              {children}
+            </a>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote
+              style={{
+                borderLeft: `3px solid ${blockquoteBorder}`,
+                paddingLeft: "1em",
+                margin: "0.5em 0",
+                fontStyle: "italic",
+                color: blockquoteColor,
+              }}
+            >
+              {children}
+            </blockquote>
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    )
   }
 
   const finalHorizontalPos = getFinalHorizontalPosition()
@@ -203,23 +322,35 @@ export function TeleprompterDisplay({
   
   const horizontalPosStyle = getHorizontalStyle()
 
-  // Convert hex color to rgba with opacity
-  const hexToRgba = (hex: string, opacity: number): string => {
-    const r = parseInt(hex.slice(1, 3), 16)
-    const g = parseInt(hex.slice(3, 5), 16)
-    const b = parseInt(hex.slice(5, 7), 16)
-    const alpha = opacity / 100
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`
-  }
-
-  const textColorWithOpacity = hexToRgba(textColor, textOpacity)
-
   return (
     <div
       ref={containerRef}
       onWheel={handleWheel}
       className="relative h-full w-full overflow-hidden bg-background"
     >
+      {/* Markdown Toggle Button */}
+      {showMarkdownToggle && text && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowMarkdownView(!showMarkdownView)}
+          className="absolute top-4 right-4 z-50 h-9 bg-background/90 backdrop-blur-sm border-2 hover:bg-background shadow-lg"
+          title={showMarkdownView ? "Switch to simple view" : "Switch to markdown view"}
+        >
+          {showMarkdownView ? (
+            <>
+              <Type className="h-4 w-4 mr-2" />
+              Simple
+            </>
+          ) : (
+            <>
+              <Eye className="h-4 w-4 mr-2" />
+              Markdown
+            </>
+          )}
+        </Button>
+      )}
+      
       {/* Crosshair Target */}
       <Crosshair
         enabled={showCrosshair}
@@ -256,7 +387,7 @@ export function TeleprompterDisplay({
         }}
       >
         {text ? (
-          enableMarkdown ? (
+          showMarkdownView ? (
             renderMarkdown(text)
           ) : (
             text

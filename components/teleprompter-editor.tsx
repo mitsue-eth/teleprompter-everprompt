@@ -4,7 +4,7 @@ import * as React from "react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { EditorBackground } from "@/components/editor-background"
-import { FileText, X, Edit, Clock } from "lucide-react"
+import { FileText, X, Edit, Clock, Maximize2 } from "lucide-react"
 import {
   Dialog,
   DialogContent,
@@ -24,6 +24,7 @@ interface TeleprompterEditorProps {
   hasUnsavedChanges?: boolean
   isSaving?: boolean
   onRename?: (newName: string) => void
+  onOpenEnhancedEditor?: () => void
 }
 
 export function TeleprompterEditor({
@@ -34,6 +35,7 @@ export function TeleprompterEditor({
   hasUnsavedChanges = false,
   isSaving = false,
   onRename,
+  onOpenEnhancedEditor,
 }: TeleprompterEditorProps) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null)
   const [isRenaming, setIsRenaming] = React.useState(false)
@@ -121,17 +123,30 @@ export function TeleprompterEditor({
               <span className="text-xs text-muted-foreground whitespace-nowrap">(Unsaved)</span>
             )}
           </div>
-          {onRename && scriptName && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleRenameClick}
-              className="h-8 w-8 shrink-0"
-              title="Rename script"
-            >
-              <Edit className="h-4 w-4" />
-            </Button>
-          )}
+          <div className="flex items-center gap-2 shrink-0">
+            {onOpenEnhancedEditor && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onOpenEnhancedEditor}
+                className="h-8 w-8"
+                title="Open Enhanced Editor"
+              >
+                <Maximize2 className="h-4 w-4" />
+              </Button>
+            )}
+            {onRename && scriptName && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleRenameClick}
+                className="h-8 w-8"
+                title="Rename script"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         
         {/* Script Editor Label */}
