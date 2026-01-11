@@ -428,6 +428,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             crosshairIntensity={settings.crosshairIntensity}
             textColor={settings.textColor}
             textOpacity={settings.textOpacity}
+            lineHeight={settings.lineHeight}
+            paragraphSpacing={settings.paragraphSpacing}
             onOpenEditor={() => setIsEditorOpen(true)}
           />
 

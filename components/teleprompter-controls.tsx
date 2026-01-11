@@ -1,27 +1,53 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Slider } from "@/components/ui/slider"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Play, Pause, ChevronUp, ChevronDown, RotateCcw, Settings, ChevronDown as ChevronDownIcon, ChevronRight } from "lucide-react"
-import { Checkbox } from "@/components/ui/checkbox"
-import { cn } from "@/lib/utils"
-import type { TeleprompterSettings } from "@/hooks/use-teleprompter-settings"
+import * as React from "react";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
+import { SliderWithDefault } from "@/components/ui/slider-with-default";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import {
+  Play,
+  Pause,
+  ChevronUp,
+  ChevronDown,
+  RotateCcw,
+  Settings,
+  ChevronDown as ChevronDownIcon,
+  ChevronRight,
+} from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { cn } from "@/lib/utils";
+import type { TeleprompterSettings } from "@/hooks/use-teleprompter-settings";
+
+// Default values for reset functionality
+const DEFAULT_VALUES = {
+  scrollSpeed: 1.0,
+  fontSize: 24,
+  textWidth: 80,
+  textOpacity: 100,
+  lineHeight: 1.6,
+  paragraphSpacing: 1.0,
+  horizontalOffset: 0,
+  verticalOffset: 0,
+  crosshairSize: 24,
+  crosshairIntensity: 60,
+  crosshairX: 50,
+  crosshairY: 50,
+};
 
 interface TeleprompterControlsProps {
-  settings: TeleprompterSettings
+  settings: TeleprompterSettings;
   onSettingChange: <K extends keyof TeleprompterSettings>(
     key: K,
     value: TeleprompterSettings[K]
-  ) => void
-  isPlaying: boolean
-  onPlayPause: () => void
-  onScrollUp: () => void
-  onScrollDown: () => void
-  onReset: () => void // Reset scroll position (for play controls)
-  onResetSettings?: () => void // Reset all settings to defaults (for settings panel)
+  ) => void;
+  isPlaying: boolean;
+  onPlayPause: () => void;
+  onScrollUp: () => void;
+  onScrollDown: () => void;
+  onReset: () => void; // Reset scroll position (for play controls)
+  onResetSettings?: () => void; // Reset all settings to defaults (for settings panel)
 }
 
 export function TeleprompterControls({
@@ -35,14 +61,14 @@ export function TeleprompterControls({
   onResetSettings,
 }: TeleprompterControlsProps) {
   // Speed range: 0.1x to 5.0x with 0.01x granularity for fine control
-  const MIN_SPEED = 0.1
-  const MAX_SPEED = 5.0
-  const SPEED_STEP = 0.01
+  const MIN_SPEED = 0.1;
+  const MAX_SPEED = 5.0;
+  const SPEED_STEP = 0.01;
 
   // Collapsible section states
-  const [isTextAppearanceOpen, setIsTextAppearanceOpen] = React.useState(false)
-  const [isTextPositionOpen, setIsTextPositionOpen] = React.useState(false)
-  const [isCrosshairOpen, setIsCrosshairOpen] = React.useState(false)
+  const [isTextAppearanceOpen, setIsTextAppearanceOpen] = React.useState(false);
+  const [isTextPositionOpen, setIsTextPositionOpen] = React.useState(false);
+  const [isCrosshairOpen, setIsCrosshairOpen] = React.useState(false);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -54,7 +80,9 @@ export function TeleprompterControls({
           </div>
           <div className="flex-1">
             <h2 className="text-lg font-semibold text-foreground">Controls</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Adjust teleprompter settings</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Adjust teleprompter settings
+            </p>
           </div>
         </div>
       </div>
@@ -105,20 +133,33 @@ export function TeleprompterControls({
             {/* Speed Control */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="speed-slider">Speed</Label>
+                <Label
+                  htmlFor="speed-slider"
+                  onDoubleClick={() =>
+                    onSettingChange("scrollSpeed", DEFAULT_VALUES.scrollSpeed)
+                  }
+                  className="cursor-pointer select-none"
+                  title="Double-click to reset to default"
+                >
+                  Speed
+                </Label>
                 <span className="text-sm text-muted-foreground">
                   {settings.scrollSpeed.toFixed(2)}x
                 </span>
               </div>
-              <Slider
+              <SliderWithDefault
                 id="speed-slider"
                 min={MIN_SPEED}
                 max={MAX_SPEED}
                 step={SPEED_STEP}
                 value={[settings.scrollSpeed]}
+                defaultValue={DEFAULT_VALUES.scrollSpeed}
                 onValueChange={(value) => {
-                  const speed = Math.max(MIN_SPEED, Math.min(MAX_SPEED, value[0]))
-                  onSettingChange("scrollSpeed", Math.round(speed * 100) / 100) // Round to 2 decimal places
+                  const speed = Math.max(
+                    MIN_SPEED,
+                    Math.min(MAX_SPEED, value[0])
+                  );
+                  onSettingChange("scrollSpeed", Math.round(speed * 100) / 100); // Round to 2 decimal places
                 }}
                 className="w-full"
               />
@@ -131,17 +172,27 @@ export function TeleprompterControls({
             {/* Font Size */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="font-size-slider">Font Size</Label>
+                <Label
+                  htmlFor="font-size-slider"
+                  onDoubleClick={() =>
+                    onSettingChange("fontSize", DEFAULT_VALUES.fontSize)
+                  }
+                  className="cursor-pointer select-none"
+                  title="Double-click to reset to default"
+                >
+                  Font Size
+                </Label>
                 <span className="text-sm text-muted-foreground">
                   {settings.fontSize}px
                 </span>
               </div>
-              <Slider
+              <SliderWithDefault
                 id="font-size-slider"
                 min={12}
                 max={72}
                 step={1}
                 value={[settings.fontSize]}
+                defaultValue={DEFAULT_VALUES.fontSize}
                 onValueChange={(value) => onSettingChange("fontSize", value[0])}
                 className="w-full"
               />
@@ -154,18 +205,30 @@ export function TeleprompterControls({
             {/* Text Width */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label htmlFor="width-slider">Text Width</Label>
+                <Label
+                  htmlFor="width-slider"
+                  onDoubleClick={() =>
+                    onSettingChange("textWidth", DEFAULT_VALUES.textWidth)
+                  }
+                  className="cursor-pointer select-none"
+                  title="Double-click to reset to default"
+                >
+                  Text Width
+                </Label>
                 <span className="text-sm text-muted-foreground">
                   {settings.textWidth}%
                 </span>
               </div>
-              <Slider
+              <SliderWithDefault
                 id="width-slider"
                 min={10}
                 max={100}
                 step={1}
                 value={[settings.textWidth]}
-                onValueChange={(value) => onSettingChange("textWidth", value[0])}
+                defaultValue={DEFAULT_VALUES.textWidth}
+                onValueChange={(value) =>
+                  onSettingChange("textWidth", value[0])
+                }
                 className="w-full"
               />
               <div className="flex justify-between text-xs text-muted-foreground">
@@ -181,31 +244,48 @@ export function TeleprompterControls({
                 onClick={() => setIsTextAppearanceOpen(!isTextAppearanceOpen)}
                 className="flex w-full items-center justify-between text-left cursor-pointer hover:text-foreground transition-colors"
               >
-                <Label className="text-base font-semibold cursor-pointer">Text Appearance</Label>
+                <Label className="text-base font-semibold cursor-pointer">
+                  Text Appearance
+                </Label>
                 {isTextAppearanceOpen ? (
                   <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
-              
+
               {isTextAppearanceOpen && (
                 <div className="space-y-6 pt-3">
                   {/* Text Opacity */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="text-opacity-slider">Opacity</Label>
+                      <Label
+                        htmlFor="text-opacity-slider"
+                        onDoubleClick={() =>
+                          onSettingChange(
+                            "textOpacity",
+                            DEFAULT_VALUES.textOpacity
+                          )
+                        }
+                        className="cursor-pointer select-none"
+                        title="Double-click to reset to default"
+                      >
+                        Opacity
+                      </Label>
                       <span className="text-sm text-muted-foreground">
                         {settings.textOpacity}%
                       </span>
                     </div>
-                    <Slider
+                    <SliderWithDefault
                       id="text-opacity-slider"
                       min={0}
                       max={100}
                       step={1}
                       value={[settings.textOpacity]}
-                      onValueChange={(value) => onSettingChange("textOpacity", value[0])}
+                      defaultValue={DEFAULT_VALUES.textOpacity}
+                      onValueChange={(value) =>
+                        onSettingChange("textOpacity", value[0])
+                      }
                       className="w-full"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -235,7 +315,9 @@ export function TeleprompterControls({
                         <button
                           key={color.value}
                           type="button"
-                          onClick={() => onSettingChange("textColor", color.value)}
+                          onClick={() =>
+                            onSettingChange("textColor", color.value)
+                          }
                           className={cn(
                             "h-8 w-full rounded-md border-2 transition-all cursor-pointer",
                             settings.textColor === color.value
@@ -256,12 +338,96 @@ export function TeleprompterControls({
                         id="text-color-input"
                         type="color"
                         value={settings.textColor}
-                        onChange={(e) => onSettingChange("textColor", e.target.value)}
+                        onChange={(e) =>
+                          onSettingChange("textColor", e.target.value)
+                        }
                         className="h-8 w-16 cursor-pointer rounded border border-border bg-background"
                       />
                       <span className="text-xs text-muted-foreground font-mono">
                         {settings.textColor}
                       </span>
+                    </div>
+                  </div>
+
+                  {/* Line Height */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="line-height-slider"
+                        onDoubleClick={() =>
+                          onSettingChange(
+                            "lineHeight",
+                            DEFAULT_VALUES.lineHeight
+                          )
+                        }
+                        className="cursor-pointer select-none"
+                        title="Double-click to reset to default"
+                      >
+                        Line Height
+                      </Label>
+                      <span className="text-sm text-muted-foreground">
+                        {(settings.lineHeight ?? 1.6).toFixed(1)}x
+                      </span>
+                    </div>
+                    <SliderWithDefault
+                      id="line-height-slider"
+                      min={0.8}
+                      max={3.0}
+                      step={0.1}
+                      value={[settings.lineHeight ?? 1.6]}
+                      defaultValue={DEFAULT_VALUES.lineHeight}
+                      onValueChange={(value) =>
+                        onSettingChange(
+                          "lineHeight",
+                          Math.round(value[0] * 10) / 10
+                        )
+                      }
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0.8x</span>
+                      <span>3.0x</span>
+                    </div>
+                  </div>
+
+                  {/* Paragraph Spacing */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label
+                        htmlFor="paragraph-spacing-slider"
+                        onDoubleClick={() =>
+                          onSettingChange(
+                            "paragraphSpacing",
+                            DEFAULT_VALUES.paragraphSpacing
+                          )
+                        }
+                        className="cursor-pointer select-none"
+                        title="Double-click to reset to default"
+                      >
+                        Paragraph Spacing
+                      </Label>
+                      <span className="text-sm text-muted-foreground">
+                        {(settings.paragraphSpacing ?? 1.0).toFixed(1)}em
+                      </span>
+                    </div>
+                    <SliderWithDefault
+                      id="paragraph-spacing-slider"
+                      min={0.5}
+                      max={3.0}
+                      step={0.1}
+                      value={[settings.paragraphSpacing ?? 1.0]}
+                      defaultValue={DEFAULT_VALUES.paragraphSpacing}
+                      onValueChange={(value) =>
+                        onSettingChange(
+                          "paragraphSpacing",
+                          Math.round(value[0] * 10) / 10
+                        )
+                      }
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0.5em</span>
+                      <span>3.0em</span>
                     </div>
                   </div>
                 </div>
@@ -275,14 +441,16 @@ export function TeleprompterControls({
                 onClick={() => setIsTextPositionOpen(!isTextPositionOpen)}
                 className="flex w-full items-center justify-between text-left cursor-pointer hover:text-foreground transition-colors"
               >
-                <Label className="text-base font-semibold cursor-pointer">Text Positioning</Label>
+                <Label className="text-base font-semibold cursor-pointer">
+                  Text Positioning
+                </Label>
                 {isTextPositionOpen ? (
                   <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
                 ) : (
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 )}
               </button>
-              
+
               {isTextPositionOpen && (
                 <div className="space-y-6 pt-3">
                   {/* Text Alignment */}
@@ -292,22 +460,43 @@ export function TeleprompterControls({
                       type="single"
                       value={settings.textAlign}
                       onValueChange={(value) => {
-                        if (value === "left" || value === "center" || value === "right" || value === "justify") {
-                          onSettingChange("textAlign", value)
+                        if (
+                          value === "left" ||
+                          value === "center" ||
+                          value === "right" ||
+                          value === "justify"
+                        ) {
+                          onSettingChange("textAlign", value);
                         }
                       }}
                       className="w-full"
                     >
-                      <ToggleGroupItem value="left" aria-label="Left align" className="flex-1">
+                      <ToggleGroupItem
+                        value="left"
+                        aria-label="Left align"
+                        className="flex-1"
+                      >
                         Left
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="center" aria-label="Center align" className="flex-1">
+                      <ToggleGroupItem
+                        value="center"
+                        aria-label="Center align"
+                        className="flex-1"
+                      >
                         Center
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="right" aria-label="Right align" className="flex-1">
+                      <ToggleGroupItem
+                        value="right"
+                        aria-label="Right align"
+                        className="flex-1"
+                      >
                         Right
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="justify" aria-label="Justify" className="flex-1">
+                      <ToggleGroupItem
+                        value="justify"
+                        aria-label="Justify"
+                        className="flex-1"
+                      >
                         Justify
                       </ToggleGroupItem>
                     </ToggleGroup>
@@ -320,40 +509,70 @@ export function TeleprompterControls({
                       type="single"
                       value={settings.horizontalPosition}
                       onValueChange={(value) => {
-                        if (value === "left" || value === "center" || value === "right") {
+                        if (
+                          value === "left" ||
+                          value === "center" ||
+                          value === "right"
+                        ) {
                           // Always reset offset to 0 when switching presets
-                          onSettingChange("horizontalPosition", value)
-                          onSettingChange("horizontalOffset", 0)
+                          onSettingChange("horizontalPosition", value);
+                          onSettingChange("horizontalOffset", 0);
                         }
                       }}
                       className="w-full"
                     >
-                      <ToggleGroupItem value="left" aria-label="Left" className="flex-1">
+                      <ToggleGroupItem
+                        value="left"
+                        aria-label="Left"
+                        className="flex-1"
+                      >
                         Left
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="center" aria-label="Center" className="flex-1">
+                      <ToggleGroupItem
+                        value="center"
+                        aria-label="Center"
+                        className="flex-1"
+                      >
                         Center
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="right" aria-label="Right" className="flex-1">
+                      <ToggleGroupItem
+                        value="right"
+                        aria-label="Right"
+                        className="flex-1"
+                      >
                         Right
                       </ToggleGroupItem>
                     </ToggleGroup>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="horizontal-offset-slider" className="text-sm">
+                        <Label
+                          htmlFor="horizontal-offset-slider"
+                          className="text-sm cursor-pointer select-none"
+                          onDoubleClick={() =>
+                            onSettingChange(
+                              "horizontalOffset",
+                              DEFAULT_VALUES.horizontalOffset
+                            )
+                          }
+                          title="Double-click to reset to default"
+                        >
                           Fine-tune
                         </Label>
                         <span className="text-sm text-muted-foreground">
-                          {settings.horizontalOffset > 0 ? "+" : ""}{settings.horizontalOffset}%
+                          {settings.horizontalOffset > 0 ? "+" : ""}
+                          {settings.horizontalOffset}%
                         </span>
                       </div>
-                      <Slider
+                      <SliderWithDefault
                         id="horizontal-offset-slider"
                         min={-50}
                         max={50}
                         step={1}
                         value={[settings.horizontalOffset]}
-                        onValueChange={(value) => onSettingChange("horizontalOffset", value[0])}
+                        defaultValue={DEFAULT_VALUES.horizontalOffset}
+                        onValueChange={(value) =>
+                          onSettingChange("horizontalOffset", value[0])
+                        }
                         className="w-full"
                       />
                     </div>
@@ -366,40 +585,70 @@ export function TeleprompterControls({
                       type="single"
                       value={settings.verticalPosition}
                       onValueChange={(value) => {
-                        if (value === "top" || value === "center" || value === "bottom") {
+                        if (
+                          value === "top" ||
+                          value === "center" ||
+                          value === "bottom"
+                        ) {
                           // Always reset offset to 0 when switching presets
-                          onSettingChange("verticalPosition", value)
-                          onSettingChange("verticalOffset", 0)
+                          onSettingChange("verticalPosition", value);
+                          onSettingChange("verticalOffset", 0);
                         }
                       }}
                       className="w-full"
                     >
-                      <ToggleGroupItem value="top" aria-label="Top" className="flex-1">
+                      <ToggleGroupItem
+                        value="top"
+                        aria-label="Top"
+                        className="flex-1"
+                      >
                         Top
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="center" aria-label="Center" className="flex-1">
+                      <ToggleGroupItem
+                        value="center"
+                        aria-label="Center"
+                        className="flex-1"
+                      >
                         Center
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="bottom" aria-label="Bottom" className="flex-1">
+                      <ToggleGroupItem
+                        value="bottom"
+                        aria-label="Bottom"
+                        className="flex-1"
+                      >
                         Bottom
                       </ToggleGroupItem>
                     </ToggleGroup>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="vertical-offset-slider" className="text-sm">
+                        <Label
+                          htmlFor="vertical-offset-slider"
+                          className="text-sm cursor-pointer select-none"
+                          onDoubleClick={() =>
+                            onSettingChange(
+                              "verticalOffset",
+                              DEFAULT_VALUES.verticalOffset
+                            )
+                          }
+                          title="Double-click to reset to default"
+                        >
                           Fine-tune
                         </Label>
                         <span className="text-sm text-muted-foreground">
-                          {settings.verticalOffset > 0 ? "+" : ""}{settings.verticalOffset}%
+                          {settings.verticalOffset > 0 ? "+" : ""}
+                          {settings.verticalOffset}%
                         </span>
                       </div>
-                      <Slider
+                      <SliderWithDefault
                         id="vertical-offset-slider"
                         min={-50}
                         max={50}
                         step={1}
                         value={[settings.verticalOffset]}
-                        onValueChange={(value) => onSettingChange("verticalOffset", value[0])}
+                        defaultValue={DEFAULT_VALUES.verticalOffset}
+                        onValueChange={(value) =>
+                          onSettingChange("verticalOffset", value[0])
+                        }
                         className="w-full"
                       />
                     </div>
@@ -415,11 +664,15 @@ export function TeleprompterControls({
                 className="flex w-full items-center justify-between text-left cursor-pointer hover:text-foreground transition-colors"
               >
                 <div className="flex items-center gap-2">
-                  <Label className="text-base font-semibold cursor-pointer">Camera Lens Target</Label>
+                  <Label className="text-base font-semibold cursor-pointer">
+                    Camera Lens Target
+                  </Label>
                   <div onClick={(e) => e.stopPropagation()}>
                     <Checkbox
                       checked={settings.showCrosshair}
-                      onCheckedChange={(checked) => onSettingChange("showCrosshair", checked === true)}
+                      onCheckedChange={(checked) =>
+                        onSettingChange("showCrosshair", checked === true)
+                      }
                     />
                   </div>
                 </div>
@@ -429,7 +682,7 @@ export function TeleprompterControls({
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 )}
               </div>
-              
+
               {isCrosshairOpen && settings.showCrosshair && (
                 <div className="space-y-6 pt-3">
                   {/* Crosshair Shape */}
@@ -439,22 +692,43 @@ export function TeleprompterControls({
                       type="single"
                       value={settings.crosshairShape}
                       onValueChange={(value) => {
-                        if (value === "circle" || value === "square" || value === "cross" || value === "dot") {
-                          onSettingChange("crosshairShape", value)
+                        if (
+                          value === "circle" ||
+                          value === "square" ||
+                          value === "cross" ||
+                          value === "dot"
+                        ) {
+                          onSettingChange("crosshairShape", value);
                         }
                       }}
                       className="w-full"
                     >
-                      <ToggleGroupItem value="circle" aria-label="Circle" className="flex-1">
+                      <ToggleGroupItem
+                        value="circle"
+                        aria-label="Circle"
+                        className="flex-1"
+                      >
                         Circle
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="square" aria-label="Square" className="flex-1">
+                      <ToggleGroupItem
+                        value="square"
+                        aria-label="Square"
+                        className="flex-1"
+                      >
                         Square
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="cross" aria-label="Cross" className="flex-1">
+                      <ToggleGroupItem
+                        value="cross"
+                        aria-label="Cross"
+                        className="flex-1"
+                      >
                         Cross
                       </ToggleGroupItem>
-                      <ToggleGroupItem value="dot" aria-label="Dot" className="flex-1">
+                      <ToggleGroupItem
+                        value="dot"
+                        aria-label="Dot"
+                        className="flex-1"
+                      >
                         Dot
                       </ToggleGroupItem>
                     </ToggleGroup>
@@ -463,18 +737,33 @@ export function TeleprompterControls({
                   {/* Crosshair Size */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="crosshair-size-slider">Size</Label>
+                      <Label
+                        htmlFor="crosshair-size-slider"
+                        onDoubleClick={() =>
+                          onSettingChange(
+                            "crosshairSize",
+                            DEFAULT_VALUES.crosshairSize
+                          )
+                        }
+                        className="cursor-pointer select-none"
+                        title="Double-click to reset to default"
+                      >
+                        Size
+                      </Label>
                       <span className="text-sm text-muted-foreground">
                         {settings.crosshairSize}px
                       </span>
                     </div>
-                    <Slider
+                    <SliderWithDefault
                       id="crosshair-size-slider"
                       min={10}
                       max={100}
                       step={2}
                       value={[settings.crosshairSize]}
-                      onValueChange={(value) => onSettingChange("crosshairSize", value[0])}
+                      defaultValue={DEFAULT_VALUES.crosshairSize}
+                      onValueChange={(value) =>
+                        onSettingChange("crosshairSize", value[0])
+                      }
                       className="w-full"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -486,18 +775,33 @@ export function TeleprompterControls({
                   {/* Crosshair Intensity */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="crosshair-intensity-slider">Color Intensity</Label>
+                      <Label
+                        htmlFor="crosshair-intensity-slider"
+                        onDoubleClick={() =>
+                          onSettingChange(
+                            "crosshairIntensity",
+                            DEFAULT_VALUES.crosshairIntensity
+                          )
+                        }
+                        className="cursor-pointer select-none"
+                        title="Double-click to reset to default"
+                      >
+                        Color Intensity
+                      </Label>
                       <span className="text-sm text-muted-foreground">
                         {settings.crosshairIntensity}%
                       </span>
                     </div>
-                    <Slider
+                    <SliderWithDefault
                       id="crosshair-intensity-slider"
                       min={0}
                       max={100}
                       step={5}
                       value={[settings.crosshairIntensity]}
-                      onValueChange={(value) => onSettingChange("crosshairIntensity", value[0])}
+                      defaultValue={DEFAULT_VALUES.crosshairIntensity}
+                      onValueChange={(value) =>
+                        onSettingChange("crosshairIntensity", value[0])
+                      }
                       className="w-full"
                     />
                     <div className="flex justify-between text-xs text-muted-foreground">
@@ -527,7 +831,9 @@ export function TeleprompterControls({
                         <button
                           key={color.value}
                           type="button"
-                          onClick={() => onSettingChange("crosshairColor", color.value)}
+                          onClick={() =>
+                            onSettingChange("crosshairColor", color.value)
+                          }
                           className={cn(
                             "h-8 w-full rounded-md border-2 transition-all cursor-pointer",
                             settings.crosshairColor === color.value
@@ -541,14 +847,19 @@ export function TeleprompterControls({
                       ))}
                     </div>
                     <div className="flex items-center gap-2">
-                      <Label htmlFor="crosshair-color-input" className="text-sm">
+                      <Label
+                        htmlFor="crosshair-color-input"
+                        className="text-sm"
+                      >
                         Custom:
                       </Label>
                       <input
                         id="crosshair-color-input"
                         type="color"
                         value={settings.crosshairColor}
-                        onChange={(e) => onSettingChange("crosshairColor", e.target.value)}
+                        onChange={(e) =>
+                          onSettingChange("crosshairColor", e.target.value)
+                        }
                         className="h-8 w-16 cursor-pointer rounded border border-border bg-background"
                       />
                       <span className="text-xs text-muted-foreground font-mono">
@@ -560,40 +871,66 @@ export function TeleprompterControls({
                   {/* Crosshair Position */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="crosshair-x-slider" className="text-sm">
+                      <Label
+                        htmlFor="crosshair-x-slider"
+                        className="text-sm cursor-pointer select-none"
+                        onDoubleClick={() =>
+                          onSettingChange(
+                            "crosshairX",
+                            DEFAULT_VALUES.crosshairX
+                          )
+                        }
+                        title="Double-click to reset to default"
+                      >
                         Horizontal Position
                       </Label>
                       <span className="text-sm text-muted-foreground">
                         {settings.crosshairX}%
                       </span>
                     </div>
-                    <Slider
+                    <SliderWithDefault
                       id="crosshair-x-slider"
                       min={0}
                       max={100}
                       step={1}
                       value={[settings.crosshairX]}
-                      onValueChange={(value) => onSettingChange("crosshairX", value[0])}
+                      defaultValue={DEFAULT_VALUES.crosshairX}
+                      onValueChange={(value) =>
+                        onSettingChange("crosshairX", value[0])
+                      }
                       className="w-full"
                     />
                   </div>
-                  
+
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="crosshair-y-slider" className="text-sm">
+                      <Label
+                        htmlFor="crosshair-y-slider"
+                        className="text-sm cursor-pointer select-none"
+                        onDoubleClick={() =>
+                          onSettingChange(
+                            "crosshairY",
+                            DEFAULT_VALUES.crosshairY
+                          )
+                        }
+                        title="Double-click to reset to default"
+                      >
                         Vertical Position
                       </Label>
                       <span className="text-sm text-muted-foreground">
                         {settings.crosshairY}%
                       </span>
                     </div>
-                    <Slider
+                    <SliderWithDefault
                       id="crosshair-y-slider"
                       min={0}
                       max={100}
                       step={1}
                       value={[settings.crosshairY]}
-                      onValueChange={(value) => onSettingChange("crosshairY", value[0])}
+                      defaultValue={DEFAULT_VALUES.crosshairY}
+                      onValueChange={(value) =>
+                        onSettingChange("crosshairY", value[0])
+                      }
                       className="w-full"
                     />
                   </div>
@@ -604,5 +941,5 @@ export function TeleprompterControls({
         </div>
       </div>
     </div>
-  )
+  );
 }

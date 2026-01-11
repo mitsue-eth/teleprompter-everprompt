@@ -23,6 +23,8 @@ export interface TeleprompterSettings {
   crosshairIntensity: number // Crosshair color intensity/opacity (0-100, percentage)
   textColor: string // Text color (hex format, e.g., "#ffffff" for white)
   textOpacity: number // Text opacity/intensity (0-100, percentage)
+  lineHeight: number // Line height multiplier (0.8 to 3.0, e.g., 1.6 = 1.6x font size)
+  paragraphSpacing: number // Space between paragraphs in em units (0.5 to 3.0)
 }
 
 const DEFAULT_SETTINGS: TeleprompterSettings = {
@@ -46,6 +48,8 @@ const DEFAULT_SETTINGS: TeleprompterSettings = {
   crosshairIntensity: 60, // 60% intensity/opacity by default
   textColor: "#ffffff", // White color by default
   textOpacity: 100, // 100% opacity by default (fully opaque)
+  lineHeight: 1.6, // 1.6x line height by default
+  paragraphSpacing: 1.0, // 1em spacing between paragraphs by default
 }
 
 const STORAGE_KEY = "teleprompter-settings"
@@ -60,7 +64,14 @@ export function useTeleprompterSettings() {
       const stored = localStorage.getItem(STORAGE_KEY)
       if (stored) {
         const parsed = JSON.parse(stored)
-        setSettings({ ...DEFAULT_SETTINGS, ...parsed })
+        // Merge with defaults to ensure all new properties are included
+        setSettings({ 
+          ...DEFAULT_SETTINGS, 
+          ...parsed,
+          // Explicitly ensure new properties exist with defaults if missing
+          lineHeight: parsed.lineHeight ?? DEFAULT_SETTINGS.lineHeight,
+          paragraphSpacing: parsed.paragraphSpacing ?? DEFAULT_SETTINGS.paragraphSpacing,
+        })
       }
     } catch (error) {
       console.error("Failed to load settings:", error)
