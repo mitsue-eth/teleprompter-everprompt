@@ -328,7 +328,7 @@ export function EnhancedScriptEditor({
                 <span className="text-xs text-muted-foreground whitespace-nowrap">(Unsaved)</span>
               )}
             </div>
-            <div className="flex items-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center gap-1.5 flex-shrink-0 pr-8">
               {/* View Mode Toggle */}
               {showToolbar && (
                 <div className="flex items-center gap-0.5 border rounded-md p-0.5">
@@ -668,34 +668,112 @@ export function EnhancedScriptEditor({
               <div
                 className={cn(
                   "flex-1 overflow-y-auto p-6 max-w-none",
-                  "prose prose-sm dark:prose-invert",
-                  "prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground",
-                  "prose-code:text-foreground prose-pre:bg-muted prose-pre:text-foreground",
-                  "prose-a:text-primary prose-blockquote:text-muted-foreground"
+                  "bg-background"
                 )}
+                style={{ color: editorTextColor }}
               >
                 {localText.trim() ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
-                      p: ({ children }) => <p style={{ marginBottom: "1em", lineHeight: "1.6" }}>{children}</p>,
+                      p: ({ children }) => (
+                        <p style={{ marginBottom: "1em", lineHeight: "1.6", color: editorTextColor }}>
+                          {children}
+                        </p>
+                      ),
+                      strong: ({ children }) => (
+                        <strong style={{ fontWeight: 700, color: "#fbbf24" }}>
+                          {children}
+                        </strong>
+                      ),
+                      em: ({ children }) => (
+                        <em style={{ fontStyle: "italic", color: "#a78bfa" }}>
+                          {children}
+                        </em>
+                      ),
+                      h1: ({ children }) => (
+                        <h1 style={{ fontSize: "1.8em", fontWeight: 700, margin: "0.75em 0", color: "#60a5fa" }}>
+                          {children}
+                        </h1>
+                      ),
+                      h2: ({ children }) => (
+                        <h2 style={{ fontSize: "1.5em", fontWeight: 700, margin: "0.75em 0", color: "#60a5fa" }}>
+                          {children}
+                        </h2>
+                      ),
+                      h3: ({ children }) => (
+                        <h3 style={{ fontSize: "1.3em", fontWeight: 600, margin: "0.75em 0", color: "#60a5fa" }}>
+                          {children}
+                        </h3>
+                      ),
+                      ul: ({ children }) => (
+                        <ul style={{ margin: "0.5em 0", paddingLeft: "1.5em", listStyleType: "disc", color: editorTextColor }}>
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol style={{ margin: "0.5em 0", paddingLeft: "1.5em", listStyleType: "decimal", color: editorTextColor }}>
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => (
+                        <li style={{ margin: "0.25em 0", color: editorTextColor }}>{children}</li>
+                      ),
                       code({ node, inline, className, children, ...props }: any) {
                         const match = /language-(\w+)/.exec(className || "")
-                        return !inline && match ? (
-                          <SyntaxHighlighter
-                            style={vscDarkPlus}
-                            language={match[1]}
-                            PreTag="div"
+                        if (!inline && match) {
+                          return (
+                            <SyntaxHighlighter
+                              style={vscDarkPlus}
+                              language={match[1]}
+                              PreTag="div"
+                              {...props}
+                            >
+                              {String(children).replace(/\n$/, "")}
+                            </SyntaxHighlighter>
+                          )
+                        }
+                        return (
+                          <code
+                            style={{
+                              backgroundColor: "rgba(255, 255, 255, 0.1)",
+                              padding: "0.2em 0.4em",
+                              borderRadius: "3px",
+                              fontFamily: "monospace",
+                              fontSize: "0.9em",
+                              color: "#34d399",
+                            }}
                             {...props}
                           >
-                            {String(children).replace(/\n$/, "")}
-                          </SyntaxHighlighter>
-                        ) : (
-                          <code className={className} {...props}>
                             {children}
                           </code>
                         )
                       },
+                      a: ({ children, href }) => (
+                        <a
+                          href={href}
+                          style={{
+                            color: "#60a5fa",
+                            textDecoration: "underline",
+                            textDecorationColor: "#60a5fa",
+                          }}
+                        >
+                          {children}
+                        </a>
+                      ),
+                      blockquote: ({ children }) => (
+                        <blockquote
+                          style={{
+                            borderLeft: "3px solid rgba(255, 255, 255, 0.3)",
+                            paddingLeft: "1em",
+                            margin: "0.5em 0",
+                            fontStyle: "italic",
+                            color: "rgba(255, 255, 255, 0.6)",
+                          }}
+                        >
+                          {children}
+                        </blockquote>
+                      ),
                     }}
                   >
                     {localText}

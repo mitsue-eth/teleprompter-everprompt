@@ -16,6 +16,8 @@ export interface Script {
 const SCRIPTS_STORAGE_KEY = "teleprompter-scripts"
 const SELECTED_SCRIPT_ID_KEY = "teleprompter-selected-script-id"
 const MIGRATION_COMPLETE_KEY = "teleprompter-scripts-migration-complete"
+const SCRIPTS_VERSION_KEY = "teleprompter-scripts-version"
+const CURRENT_VERSION = 1 // Increment this when schema changes
 
 export function useScripts() {
   const [scripts, setScripts] = useState<Script[]>([])
@@ -23,25 +25,48 @@ export function useScripts() {
   const [isLoaded, setIsLoaded] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
+  // Validate and migrate script data
+  const validateAndMigrateScripts = (parsed: any, version: number): Script[] => {
+    if (!Array.isArray(parsed)) {
+      return []
+    }
+
+    // Ensure all scripts have required fields with defaults
+    return parsed.map((script: any) => ({
+      id: script.id || crypto.randomUUID(),
+      name: script.name || "Untitled Script",
+      content: script.content || "",
+      status: (script.status && ["draft", "ready", "completed"].includes(script.status)) 
+        ? script.status 
+        : "draft",
+      createdAt: script.createdAt || new Date().toISOString(),
+      updatedAt: script.updatedAt || new Date().toISOString(),
+    }))
+  }
+
   // Load scripts from localStorage on mount
   useEffect(() => {
     try {
+      // Check version and migrate if needed
+      const storedVersion = localStorage.getItem(SCRIPTS_VERSION_KEY)
+      const version = storedVersion ? parseInt(storedVersion, 10) : 0
+      
       // Load scripts
       const storedScripts = localStorage.getItem(SCRIPTS_STORAGE_KEY)
+      let loadedScripts: Script[] = []
+      
       if (storedScripts) {
-        const parsed = JSON.parse(storedScripts)
-        setScripts(parsed)
-      }
-
-      // Load selected script ID
-      const storedSelectedId = localStorage.getItem(SELECTED_SCRIPT_ID_KEY)
-      if (storedSelectedId) {
-        setSelectedScriptId(storedSelectedId)
+        try {
+          const parsed = JSON.parse(storedScripts)
+          loadedScripts = validateAndMigrateScripts(parsed, version)
+        } catch (error) {
+          console.error("Failed to parse stored scripts:", error)
+        }
       }
 
       // Migration: Check if we need to migrate from old settings.text
       const migrationComplete = localStorage.getItem(MIGRATION_COMPLETE_KEY)
-      if (!migrationComplete) {
+      if (!migrationComplete && loadedScripts.length === 0) {
         const oldSettings = localStorage.getItem("teleprompter-settings")
         if (oldSettings) {
           try {
@@ -56,10 +81,9 @@ export function useScripts() {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               }
-              const newScripts = [defaultScript]
-              setScripts(newScripts)
+              loadedScripts = [defaultScript]
               setSelectedScriptId(defaultScript.id)
-              localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(newScripts))
+              localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(loadedScripts))
               localStorage.setItem(SELECTED_SCRIPT_ID_KEY, defaultScript.id)
             }
           } catch (error) {
@@ -67,6 +91,29 @@ export function useScripts() {
           }
         }
         localStorage.setItem(MIGRATION_COMPLETE_KEY, "true")
+      }
+
+      setScripts(loadedScripts)
+
+      // Load selected script ID
+      const storedSelectedId = localStorage.getItem(SELECTED_SCRIPT_ID_KEY)
+      if (storedSelectedId) {
+        // Validate that the selected script still exists
+        const scriptExists = loadedScripts.some((s) => s.id === storedSelectedId)
+        if (scriptExists) {
+          setSelectedScriptId(storedSelectedId)
+        } else if (loadedScripts.length > 0) {
+          // Select first script if selected one doesn't exist
+          setSelectedScriptId(loadedScripts[0].id)
+        }
+      }
+
+      // Update version if needed
+      if (version < CURRENT_VERSION) {
+        localStorage.setItem(SCRIPTS_VERSION_KEY, CURRENT_VERSION.toString())
+      } else if (!storedVersion) {
+        // First time setup - set version
+        localStorage.setItem(SCRIPTS_VERSION_KEY, CURRENT_VERSION.toString())
       }
     } catch (error) {
       console.error("Failed to load scripts:", error)
@@ -80,6 +127,8 @@ export function useScripts() {
     if (isLoaded) {
       try {
         localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(scripts))
+        // Ensure version is set
+        localStorage.setItem(SCRIPTS_VERSION_KEY, CURRENT_VERSION.toString())
       } catch (error) {
         console.error("Failed to save scripts:", error)
       }

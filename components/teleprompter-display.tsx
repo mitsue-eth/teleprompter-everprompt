@@ -334,7 +334,7 @@ export function TeleprompterDisplay({
           variant="outline"
           size="sm"
           onClick={() => setShowMarkdownView(!showMarkdownView)}
-          className="absolute top-4 right-4 z-50 h-9 bg-background/90 backdrop-blur-sm border-2 hover:bg-background shadow-lg"
+          className="absolute bottom-4 right-4 z-50 h-9 bg-background/90 backdrop-blur-sm border-2 hover:bg-background shadow-lg"
           title={showMarkdownView ? "Switch to simple view" : "Switch to markdown view"}
         >
           {showMarkdownView ? (
