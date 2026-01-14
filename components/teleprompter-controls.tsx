@@ -69,6 +69,7 @@ export function TeleprompterControls({
   const [isTextAppearanceOpen, setIsTextAppearanceOpen] = React.useState(false);
   const [isTextPositionOpen, setIsTextPositionOpen] = React.useState(false);
   const [isCrosshairOpen, setIsCrosshairOpen] = React.useState(false);
+  const [isUIVisibilityOpen, setIsUIVisibilityOpen] = React.useState(false);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -937,6 +938,99 @@ export function TeleprompterControls({
                 </div>
               )}
             </div>
+          </div>
+
+          {/* UI Visibility Section */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setIsUIVisibilityOpen(!isUIVisibilityOpen)
+                  }
+                  className="flex items-center gap-2 text-sm font-medium text-foreground hover:text-foreground/80 transition-colors"
+                >
+                  {isUIVisibilityOpen ? (
+                    <ChevronDownIcon className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                  <span>UI Visibility</span>
+                </button>
+              </div>
+            </div>
+
+            {isUIVisibilityOpen && (
+              <div className="pl-6 space-y-4 border-l border-border/50">
+                {/* Controls Position */}
+                <div className="space-y-2">
+                  <Label className="text-sm">Controls Position</Label>
+                  <ToggleGroup
+                    type="single"
+                    value={settings.controlsPosition}
+                    onValueChange={(value) => {
+                      if (value) {
+                        onSettingChange(
+                          "controlsPosition",
+                          value as "left" | "right" | "center" | "hidden"
+                        );
+                      }
+                    }}
+                    className="justify-start"
+                  >
+                    <ToggleGroupItem
+                      value="center"
+                      aria-label="Center"
+                      title="Position controls centered at bottom"
+                    >
+                      Center
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="left"
+                      aria-label="Left"
+                      title="Position controls on the left side"
+                    >
+                      Left
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="right"
+                      aria-label="Right"
+                      title="Position controls on the right side"
+                    >
+                      Right
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                      value="hidden"
+                      aria-label="Hidden"
+                      title="Hide controls completely"
+                    >
+                      Hidden
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </div>
+
+                {/* Hide Buttons During Playback */}
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="hide-buttons-playback"
+                    checked={settings.hideButtonsDuringPlayback}
+                    onCheckedChange={(checked) =>
+                      onSettingChange(
+                        "hideButtonsDuringPlayback",
+                        checked === true
+                      )
+                    }
+                  />
+                  <Label
+                    htmlFor="hide-buttons-playback"
+                    className="text-sm font-normal cursor-pointer"
+                  >
+                    Hide buttons during playback
+                  </Label>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

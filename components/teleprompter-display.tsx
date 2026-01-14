@@ -36,6 +36,7 @@ interface TeleprompterDisplayProps {
   onOpenEditor?: () => void;
   showMarkdownToggle?: boolean;
   scrollSpeed?: number;
+  isFullscreen?: boolean;
 }
 
 export function TeleprompterDisplay({
@@ -66,6 +67,7 @@ export function TeleprompterDisplay({
   onOpenEditor,
   showMarkdownToggle = true,
   scrollSpeed = 1.0,
+  isFullscreen = false,
 }: TeleprompterDisplayProps) {
   const [showMarkdownView, setShowMarkdownView] =
     React.useState(enableMarkdown);
@@ -415,7 +417,7 @@ export function TeleprompterDisplay({
       className="relative h-full w-full overflow-hidden bg-background"
     >
       {/* Reading Time Display - Bottom Left */}
-      {text && (
+      {text && !isFullscreen && (
         <div className="absolute bottom-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 bg-background/90 backdrop-blur-sm border border-border/50 rounded-md shadow-lg">
           <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-sm font-medium text-foreground whitespace-nowrap">
@@ -425,7 +427,7 @@ export function TeleprompterDisplay({
       )}
 
       {/* Markdown Toggle Button */}
-      {showMarkdownToggle && text && (
+      {showMarkdownToggle && text && !isFullscreen && (
         <Button
           variant="outline"
           size="sm"
