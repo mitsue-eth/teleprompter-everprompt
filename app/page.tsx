@@ -21,6 +21,7 @@ export default function Home() {
     onDuplicateScript: (id: string) => void;
     onDeleteScript: (id: string) => void;
     onUpdateStatus: (id: string, status: ScriptStatus) => void;
+    onOpenEnhancedEditor: (scriptId?: string) => void;
   } | null>(null);
 
   const handleSettingsClick = React.useCallback(() => {
@@ -80,6 +81,7 @@ export default function Home() {
         onDuplicateScript={scriptHandlers?.onDuplicateScript}
         onDeleteScript={scriptHandlers?.onDeleteScript}
         onUpdateStatus={scriptHandlers?.onUpdateStatus}
+        onOpenEnhancedEditor={scriptHandlers?.onOpenEnhancedEditor}
       />
       <SidebarInset>
         <SiteHeader />

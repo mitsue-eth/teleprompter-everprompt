@@ -5,7 +5,10 @@ import * as SliderPrimitive from "@radix-ui/react-slider";
 import { cn } from "@/lib/utils";
 
 interface SliderWithDefaultProps
-  extends Omit<React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>, "defaultValue"> {
+  extends Omit<
+    React.ComponentPropsWithoutRef<typeof SliderPrimitive.Root>,
+    "defaultValue"
+  > {
   defaultValue?: number; // Our custom prop for the default indicator position
   showDefaultIndicator?: boolean;
   indicatorStyle?: "dot" | "line" | "notch" | "triangle";

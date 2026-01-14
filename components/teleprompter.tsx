@@ -1,37 +1,60 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { useTeleprompterSettings } from "@/hooks/use-teleprompter-settings"
-import { useTeleprompterScroll } from "@/hooks/use-teleprompter-scroll"
-import { useScripts } from "@/hooks/use-scripts"
-import { TeleprompterEditor } from "@/components/teleprompter-editor"
-import { EnhancedScriptEditor } from "@/components/enhanced-script-editor"
-import { TeleprompterDisplay } from "@/components/teleprompter-display"
-import { TeleprompterControls } from "@/components/teleprompter-controls"
-import { Card } from "@/components/ui/card"
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { Button } from "@/components/ui/button"
-import { FileText, Settings, Play, Pause, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { ScriptStatus } from "@/hooks/use-scripts"
+import * as React from "react";
+import { useTeleprompterSettings } from "@/hooks/use-teleprompter-settings";
+import { useTeleprompterScroll } from "@/hooks/use-teleprompter-scroll";
+import { useScripts } from "@/hooks/use-scripts";
+import { TeleprompterEditor } from "@/components/teleprompter-editor";
+import { EnhancedScriptEditor } from "@/components/enhanced-script-editor";
+import { TeleprompterDisplay } from "@/components/teleprompter-display";
+import { TeleprompterControls } from "@/components/teleprompter-controls";
+import { Card } from "@/components/ui/card";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import {
+  FileText,
+  Settings,
+  Play,
+  Pause,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { ScriptStatus } from "@/hooks/use-scripts";
 
 export interface TeleprompterRef {
-  openSettings: () => void
-  openEditor: () => void
+  openSettings: () => void;
+  openEditor: () => void;
+  openEnhancedEditor: () => void;
   getScriptHandlers: () => {
-    scripts: ReturnType<typeof useScripts>["scripts"]
-    selectedScriptId: ReturnType<typeof useScripts>["selectedScriptId"]
-    onSelectScript: (id: string) => boolean
-    onCreateScript: () => void
-    onRenameScript: (id: string, name: string) => void
-    onDuplicateScript: (id: string) => void
-    onDeleteScript: (id: string) => void
-    onUpdateStatus: (id: string, status: ScriptStatus) => void
-  } | null
+    scripts: ReturnType<typeof useScripts>["scripts"];
+    selectedScriptId: ReturnType<typeof useScripts>["selectedScriptId"];
+    onSelectScript: (id: string) => boolean;
+    onCreateScript: () => void;
+    onRenameScript: (id: string, name: string) => void;
+    onDuplicateScript: (id: string) => void;
+    onDeleteScript: (id: string) => void;
+    onUpdateStatus: (id: string, status: ScriptStatus) => void;
+    onOpenEnhancedEditor: (scriptId?: string) => void;
+  } | null;
 }
 
 export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
-  const { settings, updateSetting, resetSettings, isLoaded: settingsLoaded } = useTeleprompterSettings()
+  const {
+    settings,
+    updateSetting,
+    resetSettings,
+    isLoaded: settingsLoaded,
+  } = useTeleprompterSettings();
   const {
     scripts,
     selectedScript,
@@ -46,123 +69,177 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     deleteScript,
     selectScript,
     markUnsavedChanges,
-  } = useScripts()
+  } = useScripts();
 
-  const [isPlaying, setIsPlaying] = React.useState(false)
-  const [isEditorOpen, setIsEditorOpen] = React.useState(false)
-  const [isControlsOpen, setIsControlsOpen] = React.useState(false)
-  const [isEnhancedEditorOpen, setIsEnhancedEditorOpen] = React.useState(false)
-  const [isMounted, setIsMounted] = React.useState(false)
-  const [isScrollingUp, setIsScrollingUp] = React.useState(false)
-  const [isScrollingDown, setIsScrollingDown] = React.useState(false)
-  const [isSpeedDecreasing, setIsSpeedDecreasing] = React.useState(false)
-  const [isSpeedIncreasing, setIsSpeedIncreasing] = React.useState(false)
-  const [isResetting, setIsResetting] = React.useState(false)
-  const [isSaving, setIsSaving] = React.useState(false)
-  const [currentText, setCurrentText] = React.useState("")
+  const [isPlaying, setIsPlaying] = React.useState(false);
+  const [isEditorOpen, setIsEditorOpen] = React.useState(false);
+  const [isControlsOpen, setIsControlsOpen] = React.useState(false);
+  const [isEnhancedEditorOpen, setIsEnhancedEditorOpen] = React.useState(false);
+  const [isMounted, setIsMounted] = React.useState(false);
+  const [isScrollingUp, setIsScrollingUp] = React.useState(false);
+  const [isScrollingDown, setIsScrollingDown] = React.useState(false);
+  const [isSpeedDecreasing, setIsSpeedDecreasing] = React.useState(false);
+  const [isSpeedIncreasing, setIsSpeedIncreasing] = React.useState(false);
+  const [isResetting, setIsResetting] = React.useState(false);
+  const [isSaving, setIsSaving] = React.useState(false);
+  const [currentText, setCurrentText] = React.useState("");
 
-  const isLoaded = settingsLoaded && scriptsLoaded
+  const isLoaded = settingsLoaded && scriptsLoaded;
 
   // Get the current script text or fallback to settings.text for backward compatibility
-  const displayText = selectedScript?.content ?? currentText
+  const displayText = selectedScript?.content ?? currentText;
 
   // Expose methods to parent
-  React.useImperativeHandle(ref, () => ({
-    openSettings: () => {
-      setIsControlsOpen(true)
-    },
-    openEditor: () => {
-      setIsEditorOpen(true)
-    },
-    getScriptHandlers: () => {
-      if (!isLoaded) return null
-      return {
-        scripts,
-        selectedScriptId,
-        onSelectScript: (id: string) => {
-          const success = selectScript(id, false)
-          if (!success) {
-            // If there are unsaved changes, show confirmation
-            const confirmed = window.confirm("You have unsaved changes. Do you want to discard them and switch scripts?")
-            if (confirmed) {
-              selectScript(id, true)
-              // Open editor after switching script
-              setIsEditorOpen(true)
-              return true
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      openSettings: () => {
+        setIsControlsOpen(true);
+      },
+      openEditor: () => {
+        setIsEditorOpen(true);
+      },
+      openEnhancedEditor: () => {
+        // Ensure a script is selected, if not, select the first one or create one
+        if (!selectedScriptId && scripts.length > 0) {
+          selectScript(scripts[0].id, false);
+        } else if (!selectedScriptId && scripts.length === 0) {
+          createScript();
+        }
+        setIsEnhancedEditorOpen(true);
+      },
+      getScriptHandlers: () => {
+        if (!isLoaded) return null;
+        return {
+          scripts,
+          selectedScriptId,
+          onSelectScript: (id: string) => {
+            const success = selectScript(id, false);
+            if (!success) {
+              // If there are unsaved changes, show confirmation
+              const confirmed = window.confirm(
+                "You have unsaved changes. Do you want to discard them and switch scripts?"
+              );
+              if (confirmed) {
+                selectScript(id, true);
+                // Open editor after switching script
+                setIsEditorOpen(true);
+                return true;
+              }
+              return false;
             }
-            return false
-          }
-          // Open editor when script is selected
-          setIsEditorOpen(true)
-          return true
-        },
-        onCreateScript: () => {
-          const newScript = createScript()
-          // Open editor for the new script
-          setIsEditorOpen(true)
-          return newScript
-        },
-        onRenameScript: updateScriptName,
-        onDuplicateScript: (id: string) => {
-          const duplicated = duplicateScript(id)
-          // Open editor for the duplicated script
-          if (duplicated) {
-            setIsEditorOpen(true)
-          }
-          return duplicated
-        },
-        onDeleteScript: deleteScript,
-        onUpdateStatus: updateScriptStatus,
-      }
-    },
-  }), [isLoaded, scripts, selectedScriptId, selectScript, createScript, updateScriptName, duplicateScript, deleteScript, updateScriptStatus])
+            // Open editor when script is selected
+            setIsEditorOpen(true);
+            return true;
+          },
+          onCreateScript: () => {
+            const newScript = createScript();
+            // Open editor for the new script
+            setIsEditorOpen(true);
+            return newScript;
+          },
+          onRenameScript: updateScriptName,
+          onDuplicateScript: (id: string) => {
+            const duplicated = duplicateScript(id);
+            // Open editor for the duplicated script
+            if (duplicated) {
+              setIsEditorOpen(true);
+            }
+            return duplicated;
+          },
+          onDeleteScript: deleteScript,
+          onUpdateStatus: updateScriptStatus,
+          onOpenEnhancedEditor: (scriptId?: string) => {
+            // If scriptId is provided, select it first
+            if (scriptId && scriptId !== selectedScriptId) {
+              const success = selectScript(scriptId, false);
+              if (!success) {
+                const confirmed = window.confirm(
+                  "You have unsaved changes. Do you want to discard them and switch scripts?"
+                );
+                if (confirmed) {
+                  selectScript(scriptId, true);
+                } else {
+                  return;
+                }
+              }
+            } else if (!selectedScriptId && scripts.length > 0) {
+              // If no script selected, select the first one
+              selectScript(scripts[0].id, false);
+            } else if (!selectedScriptId && scripts.length === 0) {
+              // If no scripts exist, create one
+              createScript();
+            }
+            setIsEnhancedEditorOpen(true);
+          },
+        };
+      },
+    }),
+    [
+      isLoaded,
+      scripts,
+      selectedScriptId,
+      selectScript,
+      createScript,
+      updateScriptName,
+      duplicateScript,
+      deleteScript,
+      updateScriptStatus,
+    ]
+  );
 
   // Load selected script content when it changes
   React.useEffect(() => {
     if (selectedScript && isLoaded) {
-      setCurrentText(selectedScript.content)
+      setCurrentText(selectedScript.content);
     } else if (!selectedScript && isLoaded && scripts.length === 0) {
       // If no scripts exist, use settings.text as fallback
-      setCurrentText(settings.text)
+      setCurrentText(settings.text);
     }
-  }, [selectedScript, isLoaded, settings.text, scripts.length])
+  }, [selectedScript, isLoaded, settings.text, scripts.length]);
 
   // Debounced auto-save
-  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null)
+  const saveTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   React.useEffect(() => {
-    if (!isLoaded || !selectedScriptId) return
+    if (!isLoaded || !selectedScriptId) return;
 
     // Clear previous timeout
     if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
+      clearTimeout(saveTimeoutRef.current);
     }
 
     // Set new timeout to save after 1 second of no changes
     saveTimeoutRef.current = setTimeout(() => {
       if (selectedScriptId && currentText !== selectedScript?.content) {
-        setIsSaving(true)
-        updateScriptContent(selectedScriptId, currentText)
+        setIsSaving(true);
+        updateScriptContent(selectedScriptId, currentText);
         // Clear saving indicator after a brief moment
-        setTimeout(() => setIsSaving(false), 500)
+        setTimeout(() => setIsSaving(false), 500);
       }
-    }, 1000)
+    }, 1000);
 
     return () => {
       if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current)
+        clearTimeout(saveTimeoutRef.current);
       }
-    }
-  }, [currentText, selectedScriptId, selectedScript?.content, isLoaded, updateScriptContent])
+    };
+  }, [
+    currentText,
+    selectedScriptId,
+    selectedScript?.content,
+    isLoaded,
+    updateScriptContent,
+  ]);
 
   // Ensure component is mounted on client before rendering client-only features
   React.useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    setIsMounted(true);
+  }, []);
 
   const handleScrollComplete = React.useCallback(() => {
     // Auto-pause when scrolling completes
-    setIsPlaying(false)
-  }, [])
+    setIsPlaying(false);
+  }, []);
 
   const {
     scrollPosition,
@@ -177,131 +254,174 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     mode: settings.mode,
     isPlaying,
     onComplete: handleScrollComplete,
-  })
+  });
 
   const handlePlayPause = React.useCallback(() => {
-    setIsPlaying((prev) => !prev)
-  }, [])
+    setIsPlaying((prev) => !prev);
+  }, []);
 
   const handleScrollUp = React.useCallback(() => {
-    scrollBy(-50)
-    setIsScrollingUp(true)
-    setTimeout(() => setIsScrollingUp(false), 150)
-  }, [scrollBy])
+    scrollBy(-50);
+    setIsScrollingUp(true);
+    setTimeout(() => setIsScrollingUp(false), 150);
+  }, [scrollBy]);
 
   const handleScrollDown = React.useCallback(() => {
-    scrollBy(50)
-    setIsScrollingDown(true)
-    setTimeout(() => setIsScrollingDown(false), 150)
-  }, [scrollBy])
+    scrollBy(50);
+    setIsScrollingDown(true);
+    setTimeout(() => setIsScrollingDown(false), 150);
+  }, [scrollBy]);
 
   const handleSpeedIncrease = React.useCallback(() => {
-    const newSpeed = Math.min(5.0, settings.scrollSpeed + 0.1)
-    updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100)
-    setIsSpeedIncreasing(true)
-    setTimeout(() => setIsSpeedIncreasing(false), 150) // Visual feedback duration
-  }, [settings.scrollSpeed, updateSetting])
+    const newSpeed = Math.min(5.0, settings.scrollSpeed + 0.1);
+    updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100);
+    setIsSpeedIncreasing(true);
+    setTimeout(() => setIsSpeedIncreasing(false), 150); // Visual feedback duration
+  }, [settings.scrollSpeed, updateSetting]);
 
   const handleSpeedDecrease = React.useCallback(() => {
-    const newSpeed = Math.max(0.1, settings.scrollSpeed - 0.1)
-    updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100)
-    setIsSpeedDecreasing(true)
-    setTimeout(() => setIsSpeedDecreasing(false), 150) // Visual feedback duration
-  }, [settings.scrollSpeed, updateSetting])
+    const newSpeed = Math.max(0.1, settings.scrollSpeed - 0.1);
+    updateSetting("scrollSpeed", Math.round(newSpeed * 100) / 100);
+    setIsSpeedDecreasing(true);
+    setTimeout(() => setIsSpeedDecreasing(false), 150); // Visual feedback duration
+  }, [settings.scrollSpeed, updateSetting]);
 
   const handleReset = React.useCallback(() => {
-    reset()
-    setIsPlaying(false)
-    setIsResetting(true)
-    setTimeout(() => setIsResetting(false), 150) // Visual feedback duration
-  }, [reset])
+    reset();
+    setIsPlaying(false);
+    setIsResetting(true);
+    setTimeout(() => setIsResetting(false), 150); // Visual feedback duration
+  }, [reset]);
 
-  const handleWheelScroll = React.useCallback((delta: number) => {
-    scrollBy(delta)
-  }, [scrollBy])
+  const handleWheelScroll = React.useCallback(
+    (delta: number) => {
+      scrollBy(delta);
+    },
+    [scrollBy]
+  );
 
   // Keyboard shortcuts
   React.useEffect(() => {
-    if (!isMounted) return
+    if (!isMounted) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle shortcuts when panels are closed
-      if (isEditorOpen || isControlsOpen) return
-
       // Don't handle if user is typing in an input/textarea
-      const target = e.target as HTMLElement
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) {
-        return
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
       }
+
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
+      const modKey = isMac ? e.metaKey : e.ctrlKey;
+
+      // Cmd/Ctrl+E: Open enhanced editor (works globally)
+      if (modKey && e.key === "e") {
+        e.preventDefault();
+        // Ensure a script is selected
+        if (!selectedScriptId && scripts.length > 0) {
+          selectScript(scripts[0].id, false);
+        } else if (!selectedScriptId && scripts.length === 0) {
+          createScript();
+        }
+        setIsEnhancedEditorOpen(true);
+        return;
+      }
+
+      // Only handle other shortcuts when panels are closed
+      if (isEditorOpen || isControlsOpen) return;
 
       // Space bar: play/pause
       if (e.code === "Space") {
-        e.preventDefault()
-        handlePlayPause()
+        e.preventDefault();
+        handlePlayPause();
       }
 
       // ESC key: reset script
       if (e.code === "Escape") {
-        e.preventDefault()
-        handleReset()
+        e.preventDefault();
+        handleReset();
       }
 
       // Arrow keys: scroll up/down, speed left/right
       if (e.code === "ArrowUp") {
-        e.preventDefault()
-        handleScrollUp()
+        e.preventDefault();
+        handleScrollUp();
       } else if (e.code === "ArrowDown") {
-        e.preventDefault()
-        handleScrollDown()
+        e.preventDefault();
+        handleScrollDown();
       } else if (e.code === "ArrowLeft") {
-        e.preventDefault()
-        handleSpeedDecrease()
+        e.preventDefault();
+        handleSpeedDecrease();
       } else if (e.code === "ArrowRight") {
-        e.preventDefault()
-        handleSpeedIncrease()
+        e.preventDefault();
+        handleSpeedIncrease();
       }
-    }
+    };
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [isMounted, isEditorOpen, isControlsOpen, handlePlayPause, handleScrollUp, handleScrollDown, handleSpeedDecrease, handleSpeedIncrease, handleReset])
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    isMounted,
+    isEditorOpen,
+    isControlsOpen,
+    handlePlayPause,
+    handleScrollUp,
+    handleScrollDown,
+    handleSpeedDecrease,
+    handleSpeedIncrease,
+    handleReset,
+    selectedScriptId,
+    scripts,
+    selectScript,
+    createScript,
+  ]);
 
   // Load panel states from localStorage
   React.useEffect(() => {
     if (isLoaded) {
-      const editorState = localStorage.getItem("teleprompter-editor-open")
-      const controlsState = localStorage.getItem("teleprompter-controls-open")
-      if (editorState !== null) setIsEditorOpen(JSON.parse(editorState))
-      if (controlsState !== null) setIsControlsOpen(JSON.parse(controlsState))
+      const editorState = localStorage.getItem("teleprompter-editor-open");
+      const controlsState = localStorage.getItem("teleprompter-controls-open");
+      if (editorState !== null) setIsEditorOpen(JSON.parse(editorState));
+      if (controlsState !== null) setIsControlsOpen(JSON.parse(controlsState));
     }
-  }, [isLoaded])
+  }, [isLoaded]);
 
   // Save panel states to localStorage
   React.useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("teleprompter-editor-open", JSON.stringify(isEditorOpen))
+      localStorage.setItem(
+        "teleprompter-editor-open",
+        JSON.stringify(isEditorOpen)
+      );
     }
-  }, [isEditorOpen, isLoaded])
+  }, [isEditorOpen, isLoaded]);
 
   React.useEffect(() => {
     if (isLoaded) {
-      localStorage.setItem("teleprompter-controls-open", JSON.stringify(isControlsOpen))
+      localStorage.setItem(
+        "teleprompter-controls-open",
+        JSON.stringify(isControlsOpen)
+      );
     }
-  }, [isControlsOpen, isLoaded])
+  }, [isControlsOpen, isLoaded]);
 
   // Create a script if none exist (must be before any conditional returns)
   React.useEffect(() => {
     if (isLoaded && scripts.length === 0 && !selectedScriptId) {
-      createScript()
+      createScript();
     }
-  }, [isLoaded, scripts.length, selectedScriptId, createScript])
+  }, [isLoaded, scripts.length, selectedScriptId, createScript]);
 
   if (!isLoaded || !isMounted) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
       </div>
-    )
+    );
   }
 
   return (
@@ -316,16 +436,20 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             <TeleprompterEditor
               text={currentText}
               onTextChange={(text) => {
-                setCurrentText(text)
-                markUnsavedChanges()
+                setCurrentText(text);
+                markUnsavedChanges();
               }}
               scrollSpeed={settings.scrollSpeed}
               scriptName={selectedScript?.name}
               hasUnsavedChanges={hasUnsavedChanges}
               isSaving={isSaving}
-              onRename={selectedScriptId ? (newName: string) => {
-                updateScriptName(selectedScriptId, newName)
-              } : undefined}
+              onRename={
+                selectedScriptId
+                  ? (newName: string) => {
+                      updateScriptName(selectedScriptId, newName);
+                    }
+                  : undefined
+              }
               onOpenEnhancedEditor={() => setIsEnhancedEditorOpen(true)}
             />
           </SheetContent>
@@ -337,8 +461,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
         <EnhancedScriptEditor
           text={currentText}
           onTextChange={(text) => {
-            setCurrentText(text)
-            markUnsavedChanges()
+            setCurrentText(text);
+            markUnsavedChanges();
           }}
           scriptName={selectedScript?.name}
           isOpen={isEnhancedEditorOpen}
@@ -431,6 +555,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             lineHeight={settings.lineHeight}
             paragraphSpacing={settings.paragraphSpacing}
             onOpenEditor={() => setIsEditorOpen(true)}
+            scrollSpeed={settings.scrollSpeed}
           />
 
           {/* Floating Controls - only show when panels are closed */}
@@ -538,8 +663,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
         </Card>
       </div>
     </>
-  )
-})
+  );
+});
 
-Teleprompter.displayName = "Teleprompter"
-
+Teleprompter.displayName = "Teleprompter";

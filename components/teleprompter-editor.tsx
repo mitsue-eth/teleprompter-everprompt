@@ -109,9 +109,9 @@ export function TeleprompterEditor({
       <EditorBackground />
       
       {/* Header */}
-      <div className="relative z-20 border-b border-border/50 px-6 py-5 pr-16">
+      <div className="relative z-20 border-b border-border/50 px-6 py-5">
         {/* Script Name with Edit Button */}
-        <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2 flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-foreground truncate">
               {scriptName || "Untitled Script"}
@@ -123,31 +123,34 @@ export function TeleprompterEditor({
               <span className="text-xs text-muted-foreground whitespace-nowrap">(Unsaved)</span>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {onOpenEnhancedEditor && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onOpenEnhancedEditor}
-                className="h-8 w-8"
-                title="Open Enhanced Editor"
-              >
-                <Maximize2 className="h-4 w-4" />
-              </Button>
-            )}
-            {onRename && scriptName && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleRenameClick}
-                className="h-8 w-8"
-                title="Rename script"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
+          {onRename && scriptName && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleRenameClick}
+              className="h-8 w-8 shrink-0"
+              title="Rename script"
+            >
+              <Edit className="h-4 w-4" />
+            </Button>
+          )}
         </div>
+        
+        {/* Enhanced Editor Button - Prominent placement */}
+        {onOpenEnhancedEditor && (
+          <div className="mb-3">
+            <Button
+              variant="default"
+              size="sm"
+              onClick={onOpenEnhancedEditor}
+              className="w-full h-9 gap-2 font-medium shadow-sm hover:shadow-md transition-all"
+              title="Open Enhanced Editor (Ctrl/Cmd+E)"
+            >
+              <Maximize2 className="h-4 w-4" />
+              <span>Enhanced Editor</span>
+            </Button>
+          </div>
+        )}
         
         {/* Script Editor Label */}
         <p className="text-xs text-muted-foreground mb-4">Script Editor</p>

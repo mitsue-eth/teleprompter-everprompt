@@ -6,7 +6,7 @@ import { Crosshair } from "@/components/crosshair";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { Type, Eye } from "lucide-react";
+import { Type, Eye, Clock } from "lucide-react";
 
 interface TeleprompterDisplayProps {
   text: string;
@@ -35,6 +35,7 @@ interface TeleprompterDisplayProps {
   paragraphSpacing: number;
   onOpenEditor?: () => void;
   showMarkdownToggle?: boolean;
+  scrollSpeed?: number;
 }
 
 export function TeleprompterDisplay({
@@ -64,9 +65,38 @@ export function TeleprompterDisplay({
   paragraphSpacing = 1.0,
   onOpenEditor,
   showMarkdownToggle = true,
+  scrollSpeed = 1.0,
 }: TeleprompterDisplayProps) {
   const [showMarkdownView, setShowMarkdownView] =
     React.useState(enableMarkdown);
+
+  // Calculate reading time
+  const calculateReadingTime = React.useCallback((text: string, speed: number): string => {
+    if (!text.trim()) return "0 sec";
+    const wordCount = text.trim().split(/\s+/).length;
+    if (wordCount === 0) return "0 sec";
+    const wordsPerMinute = 175; // Average reading speed
+    const baseMinutes = wordCount / wordsPerMinute;
+    const totalMinutes = baseMinutes / speed; // Higher speed = less time needed
+    
+    if (totalMinutes < 1) {
+      const seconds = Math.round(totalMinutes * 60);
+      return `${seconds} sec`;
+    } else {
+      const minutes = Math.floor(totalMinutes);
+      const seconds = Math.round((totalMinutes - minutes) * 60);
+      if (seconds === 0) {
+        return `${minutes} min`;
+      }
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  }, []);
+
+  const readingTime = React.useMemo(
+    () => calculateReadingTime(text, scrollSpeed),
+    [text, scrollSpeed, calculateReadingTime]
+  );
+
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 30 : -30; // Scroll down = forward, up = backward
@@ -384,6 +414,16 @@ export function TeleprompterDisplay({
       onWheel={handleWheel}
       className="relative h-full w-full overflow-hidden bg-background"
     >
+      {/* Reading Time Display - Bottom Left */}
+      {text && (
+        <div className="absolute bottom-4 left-4 z-50 flex items-center gap-1.5 px-3 py-1.5 bg-background/90 backdrop-blur-sm border border-border/50 rounded-md shadow-lg">
+          <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-sm font-medium text-foreground whitespace-nowrap">
+            ~{readingTime}
+          </span>
+        </div>
+      )}
+
       {/* Markdown Toggle Button */}
       {showMarkdownToggle && text && (
         <Button

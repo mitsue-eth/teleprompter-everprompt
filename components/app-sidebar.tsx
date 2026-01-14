@@ -43,6 +43,7 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onDuplicateScript?: (id: string) => void
   onDeleteScript?: (id: string) => void
   onUpdateStatus?: (id: string, status: ScriptStatus) => void
+  onOpenEnhancedEditor?: (scriptId?: string) => void
 }
 
 export function AppSidebar({
@@ -56,6 +57,7 @@ export function AppSidebar({
   onDuplicateScript,
   onDeleteScript,
   onUpdateStatus,
+  onOpenEnhancedEditor,
   ...props
 }: AppSidebarProps) {
   const { setOpen, setOpenMobile, isMobile } = useSidebar()
@@ -154,6 +156,7 @@ export function AppSidebar({
                   onDuplicateScript={onDuplicateScript}
                   onDeleteScript={onDeleteScript}
                   onUpdateStatus={onUpdateStatus}
+                  onOpenEnhancedEditor={onOpenEnhancedEditor}
                 />
               </div>
             )}

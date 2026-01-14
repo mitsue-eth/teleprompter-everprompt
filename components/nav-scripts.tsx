@@ -10,6 +10,7 @@ import {
   IconTrash,
   IconCheck,
   IconX,
+  IconMaximize,
 } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -42,6 +43,7 @@ interface NavScriptsProps {
   onDuplicateScript: (id: string) => void
   onDeleteScript: (id: string) => void
   onUpdateStatus: (id: string, status: ScriptStatus) => void
+  onOpenEnhancedEditor?: (scriptId?: string) => void
 }
 
 function formatDate(dateString: string): string {
@@ -62,16 +64,16 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined })
 }
 
-function getStatusDotColor(status: ScriptStatus): string {
+function getStatusIconColor(status: ScriptStatus): string {
   switch (status) {
     case "draft":
-      return "bg-muted-foreground"
+      return "text-muted-foreground"
     case "ready":
-      return "bg-blue-500"
+      return "text-blue-500"
     case "completed":
-      return "bg-green-500"
+      return "text-green-500"
     default:
-      return "bg-muted-foreground"
+      return "text-muted-foreground"
   }
 }
 
@@ -97,6 +99,7 @@ export function NavScripts({
   onDuplicateScript,
   onDeleteScript,
   onUpdateStatus,
+  onOpenEnhancedEditor,
 }: NavScriptsProps) {
   const [renamingScriptId, setRenamingScriptId] = React.useState<string | null>(null)
   const [renameValue, setRenameValue] = React.useState("")
@@ -183,17 +186,32 @@ export function NavScripts({
                       selectedScriptId === script.id && "bg-sidebar-accent text-sidebar-foreground"
                     )}
                   >
-                    <div className="relative flex flex-col items-center shrink-0 self-stretch">
-                      <IconFileText className="size-4 mt-0.5" />
-                      <div
-                        className={cn(
-                          "w-2 h-2 rounded-full mt-2.5",
-                          getStatusDotColor(script.status)
-                        )}
+                    <div className="relative flex flex-col items-center shrink-0 self-stretch gap-1.5">
+                      <IconFileText 
+                        className={cn("size-4 mt-0.5", getStatusIconColor(script.status))}
                         title={getStatusLabel(script.status)}
                       />
+                      {/* Enhanced Editor Button */}
+                      {onOpenEnhancedEditor && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={cn(
+                            "h-6 w-6 p-0",
+                            "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+                            "hover:text-blue-400 transition-colors"
+                          )}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onOpenEnhancedEditor(script.id)
+                          }}
+                          title="Open Enhanced Editor (Ctrl/Cmd+E)"
+                        >
+                          <IconMaximize className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0 text-left pr-8">
+                    <div className="flex-1 min-w-0 text-left pr-12">
                       <div className="mb-1">
                         <span className="font-medium text-sm truncate">{script.name}</span>
                       </div>
