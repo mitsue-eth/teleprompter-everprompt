@@ -11,6 +11,10 @@ import {
   IconCheck,
   IconX,
   IconMaximize,
+  IconCloud,
+  IconDeviceDesktop,
+  IconCloudUpload,
+  IconCloudDownload,
 } from "@tabler/icons-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,6 +37,8 @@ import { Input } from "@/components/ui/input"
 import { SidebarMenu, SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar"
 import { cn } from "@/lib/utils"
 import type { Script, ScriptStatus } from "@/hooks/use-scripts"
+import { useSession } from "next-auth/react"
+import { toast } from "sonner"
 
 interface NavScriptsProps {
   scripts: Script[]
@@ -44,6 +50,8 @@ interface NavScriptsProps {
   onDeleteScript: (id: string) => void
   onUpdateStatus: (id: string, status: ScriptStatus) => void
   onOpenEnhancedEditor?: (scriptId?: string) => void
+  onMoveToCloud?: (id: string) => Promise<boolean>
+  onMoveToLocal?: (id: string) => Promise<boolean>
 }
 
 function formatDate(dateString: string): string {
@@ -100,10 +108,14 @@ export function NavScripts({
   onDeleteScript,
   onUpdateStatus,
   onOpenEnhancedEditor,
+  onMoveToCloud,
+  onMoveToLocal,
 }: NavScriptsProps) {
+  const { data: session } = useSession()
   const [renamingScriptId, setRenamingScriptId] = React.useState<string | null>(null)
   const [renameValue, setRenameValue] = React.useState("")
   const [deletingScriptId, setDeletingScriptId] = React.useState<string | null>(null)
+  const [movingScriptId, setMovingScriptId] = React.useState<string | null>(null)
 
   const handleRenameStart = (script: Script) => {
     setRenameValue(script.name)
@@ -133,6 +145,40 @@ export function NavScripts({
   const handleSelectScript = (id: string) => {
     // The onSelectScript handler from parent already handles unsaved changes confirmation
     onSelectScript(id)
+  }
+
+  const handleMoveToCloud = async (id: string) => {
+    if (!onMoveToCloud) return
+    setMovingScriptId(id)
+    try {
+      const success = await onMoveToCloud(id)
+      if (success) {
+        toast.success("Script moved to cloud")
+      } else {
+        toast.error("Failed to move script to cloud")
+      }
+    } catch (error) {
+      toast.error("Error moving script to cloud")
+    } finally {
+      setMovingScriptId(null)
+    }
+  }
+
+  const handleMoveToLocal = async (id: string) => {
+    if (!onMoveToLocal) return
+    setMovingScriptId(id)
+    try {
+      const success = await onMoveToLocal(id)
+      if (success) {
+        toast.success("Script moved to local storage")
+      } else {
+        toast.error("Failed to move script to local storage")
+      }
+    } catch (error) {
+      toast.error("Error moving script to local storage")
+    } finally {
+      setMovingScriptId(null)
+    }
   }
 
   const sortedScripts = [...scripts].sort((a, b) => {
@@ -191,28 +237,15 @@ export function NavScripts({
                         className={cn("size-4 mt-0.5", getStatusIconColor(script.status))}
                         title={getStatusLabel(script.status)}
                       />
-                      {/* Enhanced Editor Button */}
-                      {onOpenEnhancedEditor && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn(
-                            "h-6 w-6 p-0",
-                            "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
-                            "hover:text-blue-400 transition-colors"
-                          )}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onOpenEnhancedEditor(script.id)
-                          }}
-                          title="Open Enhanced Editor (Ctrl/Cmd+E)"
-                        >
-                          <IconMaximize className="h-3.5 w-3.5" />
-                        </Button>
+                      {/* Storage indicator */}
+                      {script.storageType === "cloud" ? (
+                        <IconCloud className="h-3 w-3 text-blue-500" title="Cloud storage" />
+                      ) : (
+                        <IconDeviceDesktop className="h-3 w-3 text-muted-foreground" title="Local storage" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0 text-left pr-12">
-                      <div className="mb-1">
+                      <div className="mb-1 flex items-center gap-1.5">
                         <span className="font-medium text-sm truncate">{script.name}</span>
                       </div>
                       <p className="text-xs text-sidebar-foreground/50 truncate">
@@ -220,6 +253,26 @@ export function NavScripts({
                       </p>
                     </div>
                   </SidebarMenuButton>
+
+                  {/* Enhanced Editor Button - positioned outside to avoid nested button, under the icon */}
+                  {onOpenEnhancedEditor && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        "absolute left-4 top-[calc(50%+0.75rem)] h-6 w-6 p-0 z-10",
+                        "text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50",
+                        "hover:text-blue-400 transition-colors"
+                      )}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        onOpenEnhancedEditor(script.id)
+                      }}
+                      title="Open Enhanced Editor (Ctrl/Cmd+E)"
+                    >
+                      <IconMaximize className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -244,6 +297,28 @@ export function NavScripts({
                         <IconCopy className="h-4 w-4 mr-2" />
                         Duplicate
                       </DropdownMenuItem>
+                      {session?.user && onMoveToCloud && onMoveToLocal && (
+                        <>
+                          <DropdownMenuSeparator />
+                          {script.storageType === "local" ? (
+                            <DropdownMenuItem
+                              onClick={() => handleMoveToCloud(script.id)}
+                              disabled={movingScriptId === script.id}
+                            >
+                              <IconCloudUpload className="h-4 w-4 mr-2" />
+                              Move to Cloud
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              onClick={() => handleMoveToLocal(script.id)}
+                              disabled={movingScriptId === script.id}
+                            >
+                              <IconCloudDownload className="h-4 w-4 mr-2" />
+                              Move to Local
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      )}
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5">
                         <p className="text-xs font-medium mb-1.5 text-muted-foreground">Status</p>

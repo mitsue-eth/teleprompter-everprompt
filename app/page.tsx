@@ -22,6 +22,8 @@ export default function Home() {
     onDeleteScript: (id: string) => void;
     onUpdateStatus: (id: string, status: ScriptStatus) => void;
     onOpenEnhancedEditor: (scriptId?: string) => void;
+    onMoveToCloud?: (id: string) => Promise<boolean>;
+    onMoveToLocal?: (id: string) => Promise<boolean>;
   } | null>(null);
 
   const handleSettingsClick = React.useCallback(() => {
@@ -82,9 +84,16 @@ export default function Home() {
         onDeleteScript={scriptHandlers?.onDeleteScript}
         onUpdateStatus={scriptHandlers?.onUpdateStatus}
         onOpenEnhancedEditor={scriptHandlers?.onOpenEnhancedEditor}
+        onMoveToCloud={scriptHandlers?.onMoveToCloud}
+        onMoveToLocal={scriptHandlers?.onMoveToLocal}
       />
       <SidebarInset>
-        <SiteHeader />
+        <SiteHeader
+          cloudScriptCount={
+            scriptHandlers?.scripts?.filter((s) => s.storageType === "cloud")
+              .length ?? 0
+          }
+        />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">

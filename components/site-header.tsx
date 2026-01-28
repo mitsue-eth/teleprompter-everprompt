@@ -1,16 +1,15 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { Shield } from "lucide-react";
+import { AuthStatus } from "@/components/auth-status";
+import { ShieldStatus } from "@/components/shield-status";
 
-export function SiteHeader() {
+interface SiteHeaderProps {
+  cloudScriptCount?: number;
+}
+
+export function SiteHeader({ cloudScriptCount = 0 }: SiteHeaderProps) {
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 lg:gap-2 lg:px-6">
@@ -20,24 +19,9 @@ export function SiteHeader() {
           className="mx-2 data-[orientation=vertical]:h-4"
         />
         <h1 className="text-base font-medium">Teleprompter</h1>
-        <div className="ml-auto">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                className="flex items-center justify-center h-8 w-8 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                aria-label="Privacy information"
-              >
-                <Shield className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-xs">
-              <p className="text-sm">
-                Your scripts are stored locally in your browser. We never see
-                your data.
-              </p>
-            </TooltipContent>
-          </Tooltip>
+        <div className="ml-auto flex items-center gap-2">
+          <ShieldStatus cloudScriptCount={cloudScriptCount} />
+          <AuthStatus />
         </div>
       </div>
     </header>

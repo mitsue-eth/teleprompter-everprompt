@@ -47,6 +47,8 @@ export interface TeleprompterRef {
     onDeleteScript: (id: string) => void;
     onUpdateStatus: (id: string, status: ScriptStatus) => void;
     onOpenEnhancedEditor: (scriptId?: string) => void;
+    onMoveToCloud?: (id: string) => Promise<boolean>;
+    onMoveToLocal?: (id: string) => Promise<boolean>;
   } | null;
 }
 
@@ -71,6 +73,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     deleteScript,
     selectScript,
     markUnsavedChanges,
+    moveToCloud,
+    moveToLocal,
   } = useScripts();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -135,19 +139,17 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             return true;
           },
           onCreateScript: () => {
-            const newScript = createScript();
-            // Open editor for the new script
-            setIsEditorOpen(true);
-            return newScript;
+            createScript().then(() => {
+              setIsEditorOpen(true);
+            });
           },
           onRenameScript: updateScriptName,
           onDuplicateScript: (id: string) => {
-            const duplicated = duplicateScript(id);
-            // Open editor for the duplicated script
-            if (duplicated) {
-              setIsEditorOpen(true);
-            }
-            return duplicated;
+            duplicateScript(id).then((duplicated) => {
+              if (duplicated) {
+                setIsEditorOpen(true);
+              }
+            });
           },
           onDeleteScript: deleteScript,
           onUpdateStatus: updateScriptStatus,
@@ -174,6 +176,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             }
             setIsEnhancedEditorOpen(true);
           },
+          onMoveToCloud: moveToCloud,
+          onMoveToLocal: moveToLocal,
         };
       },
     }),
@@ -187,6 +191,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
       duplicateScript,
       deleteScript,
       updateScriptStatus,
+      moveToCloud,
+      moveToLocal,
     ]
   );
 
