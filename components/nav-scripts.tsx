@@ -137,9 +137,9 @@ export function NavScripts({
   const [movingScriptId, setMovingScriptId] = React.useState<string | null>(
     null,
   );
-  const [movingToLocalScriptId, setMovingToLocalScriptId] = React.useState<string | null>(
-    null,
-  );
+  const [movingToLocalScriptId, setMovingToLocalScriptId] = React.useState<
+    string | null
+  >(null);
   const [sortBy, setSortBy] = React.useState<SortOption>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(SORT_STORAGE_KEY);
@@ -347,7 +347,7 @@ export function NavScripts({
           </div>
         ) : (
           sortedScripts.map((script) => (
-            <SidebarMenu key={script.id}>
+            <SidebarMenu key={`${script.id}-${script.storageType}`}>
               <SidebarMenuItem>
                 <div className="group relative">
                   <SidebarMenuButton
@@ -656,17 +656,25 @@ export function NavScripts({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Move to Local Storage?</DialogTitle>
-            <DialogDescription className="space-y-2">
-              <p>
-                This will <strong>remove the script from cloud storage</strong> and keep it only in this browser.
-              </p>
-              <p className="text-amber-500">
-                The script will no longer sync across devices and will only exist on this machine.
-              </p>
+            <DialogDescription asChild>
+              <div className="text-muted-foreground text-sm space-y-2">
+                <span className="block">
+                  This will{" "}
+                  <strong>remove the script from cloud storage</strong> and keep
+                  it only in this browser.
+                </span>
+                <span className="block text-amber-500">
+                  The script will no longer sync across devices and will only
+                  exist on this machine.
+                </span>
+              </div>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setMovingToLocalScriptId(null)}>
+            <Button
+              variant="outline"
+              onClick={() => setMovingToLocalScriptId(null)}
+            >
               Cancel
             </Button>
             <Button onClick={handleMoveToLocalConfirm}>
