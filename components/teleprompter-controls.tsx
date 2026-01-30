@@ -16,6 +16,8 @@ import {
   Settings,
   ChevronDown as ChevronDownIcon,
   ChevronRight,
+  Download,
+  Upload,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
@@ -49,6 +51,7 @@ interface TeleprompterControlsProps {
   onScrollDown: () => void;
   onReset: () => void; // Reset scroll position (for play controls)
   onResetSettings?: () => void; // Reset all settings to defaults (for settings panel)
+  onExportImportClick?: () => void; // Open export/import dialog
 }
 
 export function TeleprompterControls({
@@ -60,6 +63,7 @@ export function TeleprompterControls({
   onScrollDown,
   onReset,
   onResetSettings,
+  onExportImportClick,
 }: TeleprompterControlsProps) {
   const { theme, setTheme } = useTheme();
 
@@ -1046,6 +1050,27 @@ export function TeleprompterControls({
                   Hide buttons during playback
                 </Label>
               </div>
+
+              {/* Export / Import */}
+              {onExportImportClick && (
+                <div className="space-y-2">
+                  <Label className="text-sm">Data</Label>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={onExportImportClick}
+                    className="w-full gap-2 cursor-pointer"
+                  >
+                    <Download className="h-4 w-4" />
+                    <Upload className="h-4 w-4" />
+                    Export / Import scripts
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    Download all scripts as ZIP or import from file. Your data
+                    stays in your control.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

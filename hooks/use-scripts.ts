@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useSession } from "next-auth/react"
+import type { ImportedScript } from "@/lib/import"
 
 export type ScriptStatus = "draft" | "ready" | "completed"
 
@@ -13,6 +14,8 @@ export interface Script {
   createdAt: string
   updatedAt: string
   storageType: "local" | "cloud"
+  origin?: "local" | "imported" | "cloud"
+  isPinned?: boolean
 }
 
 const SCRIPTS_STORAGE_KEY = "teleprompter-scripts"
@@ -20,7 +23,8 @@ const SELECTED_SCRIPT_ID_KEY = "teleprompter-selected-script-id"
 const MIGRATION_COMPLETE_KEY = "teleprompter-scripts-migration-complete"
 const SCRIPTS_VERSION_KEY = "teleprompter-scripts-version"
 const DEFAULT_STORAGE_KEY = "teleprompter-default-storage"
-const CURRENT_VERSION = 2 // Increment this when schema changes (added storageType)
+const PINNED_SCRIPTS_KEY = "teleprompter-pinned-scripts" // Separate storage for pinned IDs (works for both local and cloud)
+const CURRENT_VERSION = 4 // Increment when schema changes (added isPinned)
 
 export function useScripts() {
   const { data: session } = useSession()
@@ -31,11 +35,36 @@ export function useScripts() {
   const [isLoadingCloud, setIsLoadingCloud] = useState(false)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
+  // Load pinned script IDs from localStorage
+  const getPinnedScriptIds = (): Set<string> => {
+    try {
+      const stored = localStorage.getItem(PINNED_SCRIPTS_KEY)
+      if (stored) {
+        const parsed = JSON.parse(stored)
+        return new Set(Array.isArray(parsed) ? parsed : [])
+      }
+    } catch (error) {
+      console.error("Failed to load pinned scripts:", error)
+    }
+    return new Set()
+  }
+
+  // Save pinned script IDs to localStorage
+  const savePinnedScriptIds = (ids: Set<string>) => {
+    try {
+      localStorage.setItem(PINNED_SCRIPTS_KEY, JSON.stringify([...ids]))
+    } catch (error) {
+      console.error("Failed to save pinned scripts:", error)
+    }
+  }
+
   // Validate and migrate script data
   const validateAndMigrateScripts = (parsed: any, version: number): Script[] => {
     if (!Array.isArray(parsed)) {
       return []
     }
+
+    const pinnedIds = getPinnedScriptIds()
 
     // Ensure all scripts have required fields with defaults
     return parsed.map((script: any) => ({
@@ -48,6 +77,8 @@ export function useScripts() {
       createdAt: script.createdAt || new Date().toISOString(),
       updatedAt: script.updatedAt || new Date().toISOString(),
       storageType: script.storageType || "local", // Default to local for migration
+      origin: script.origin && ["local", "imported", "cloud"].includes(script.origin) ? script.origin : "local",
+      isPinned: script.isPinned ?? pinnedIds.has(script.id) ?? false,
     }))
   }
 
@@ -63,7 +94,13 @@ export function useScripts() {
       const response = await fetch("/api/scripts")
       if (response.ok) {
         const data = await response.json()
-        setCloudScripts(data)
+        // Apply pinned state from localStorage
+        const pinnedIds = getPinnedScriptIds()
+        const scriptsWithPinned = data.map((script: Script) => ({
+          ...script,
+          isPinned: pinnedIds.has(script.id),
+        }))
+        setCloudScripts(scriptsWithPinned)
       } else {
         console.error("Failed to fetch cloud scripts")
         setCloudScripts([])
@@ -133,6 +170,7 @@ export function useScripts() {
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
                 storageType: "local",
+                origin: "local",
               }
               loadedScripts = [defaultScript]
               setSelectedScriptId(defaultScript.id)
@@ -146,19 +184,21 @@ export function useScripts() {
         localStorage.setItem(MIGRATION_COMPLETE_KEY, "true")
       }
 
-      // Mark all loaded scripts as local
+      // Mark all loaded scripts as local and ensure origin
       const localScripts = loadedScripts.map((s) => ({
         ...s,
         storageType: "local" as const,
+        origin: (s as Script).origin ?? "local",
       }))
       setScripts(localScripts)
 
       // Update version if needed
       if (version < CURRENT_VERSION) {
-        // Migrate existing scripts to include storageType
+        // Migrate existing scripts to include storageType and origin
         const migrated = localScripts.map((s) => ({
           ...s,
           storageType: "local" as const,
+          origin: (s as Script).origin ?? "local",
         }))
         localStorage.setItem(SCRIPTS_STORAGE_KEY, JSON.stringify(migrated))
         localStorage.setItem(SCRIPTS_VERSION_KEY, CURRENT_VERSION.toString())
@@ -257,6 +297,7 @@ export function useScripts() {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       storageType: defaultStorage,
+      origin: defaultStorage === "cloud" ? "cloud" : "local",
     }
 
     if (defaultStorage === "cloud" && session?.user?.id) {
@@ -400,16 +441,51 @@ export function useScripts() {
         }
       }
 
-      // Update locally
+      // Update locally - DON'T update updatedAt so sorting stays stable
       setScripts((prev) =>
         prev.map((script) =>
           script.id === id
-            ? { ...script, status, updatedAt: new Date().toISOString() }
+            ? { ...script, status }
             : script
         )
       )
     },
     [allScripts, session]
+  )
+
+  // Toggle pin status for a script
+  const togglePinScript = useCallback(
+    (id: string) => {
+      const script = allScripts.find((s) => s.id === id)
+      if (!script) return
+
+      const newPinned = !script.isPinned
+
+      // Update pinned IDs in localStorage (works for both local and cloud scripts)
+      const pinnedIds = getPinnedScriptIds()
+      if (newPinned) {
+        pinnedIds.add(id)
+      } else {
+        pinnedIds.delete(id)
+      }
+      savePinnedScriptIds(pinnedIds)
+
+      // Update the script in state
+      if (script.storageType === "cloud") {
+        setCloudScripts((prev) =>
+          prev.map((s) =>
+            s.id === id ? { ...s, isPinned: newPinned } : s
+          )
+        )
+      } else {
+        setScripts((prev) =>
+          prev.map((s) =>
+            s.id === id ? { ...s, isPinned: newPinned } : s
+          )
+        )
+      }
+    },
+    [allScripts]
   )
 
   // Duplicate script
@@ -433,6 +509,7 @@ export function useScripts() {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         storageType: script.storageType, // Keep same storage type
+        origin: script.origin ?? (script.storageType === "cloud" ? "cloud" : "local"),
       }
 
       if (duplicated.storageType === "cloud" && session?.user?.id) {
@@ -611,6 +688,40 @@ export function useScripts() {
     [allScripts, selectedScriptId]
   )
 
+  // Import scripts from export ZIP or Markdown (never overwrite existing; assign new id on conflict)
+  const importScripts = useCallback(
+    (imported: ImportedScript[]) => {
+      const existingIds = new Set(allScripts.map((s) => s.id))
+      const existingNames = new Set(allScripts.map((s) => s.name))
+      const toAdd: Script[] = imported.map((s) => {
+        let id = s.id
+        if (existingIds.has(id)) id = crypto.randomUUID()
+        existingIds.add(id)
+        let name = s.name
+        let counter = 1
+        while (existingNames.has(name)) {
+          name = `${s.name} (Import ${counter})`
+          counter++
+        }
+        existingNames.add(name)
+        return {
+          id,
+          name,
+          content: s.content,
+          status: s.status,
+          createdAt: s.createdAt,
+          updatedAt: s.updatedAt,
+          storageType: "local" as const,
+          origin: "imported" as const,
+        }
+      })
+      setScripts((prev) => [...prev, ...toAdd])
+      if (toAdd.length > 0) setSelectedScriptId(toAdd[0].id)
+      setHasUnsavedChanges(false)
+    },
+    [allScripts]
+  )
+
   return {
     scripts: allScripts,
     selectedScript,
@@ -621,6 +732,7 @@ export function useScripts() {
     updateScriptContent,
     updateScriptName,
     updateScriptStatus,
+    togglePinScript,
     duplicateScript,
     deleteScript,
     selectScript,
@@ -629,5 +741,6 @@ export function useScripts() {
     moveToLocal,
     getDefaultStorage,
     setDefaultStorage,
+    importScripts,
   }
 }

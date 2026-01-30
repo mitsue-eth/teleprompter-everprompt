@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTeleprompterSettings } from "@/hooks/use-teleprompter-settings";
 import { useTeleprompterScroll } from "@/hooks/use-teleprompter-scroll";
 import { useScripts } from "@/hooks/use-scripts";
+import { ExportImportDialog } from "@/components/export-import-dialog";
 import { TeleprompterEditor } from "@/components/teleprompter-editor";
 import { EnhancedScriptEditor } from "@/components/enhanced-script-editor";
 import { TeleprompterDisplay } from "@/components/teleprompter-display";
@@ -46,9 +47,13 @@ export interface TeleprompterRef {
     onDuplicateScript: (id: string) => void;
     onDeleteScript: (id: string) => void;
     onUpdateStatus: (id: string, status: ScriptStatus) => void;
+    onTogglePin: (id: string) => void;
     onOpenEnhancedEditor: (scriptId?: string) => void;
     onMoveToCloud?: (id: string) => Promise<boolean>;
     onMoveToLocal?: (id: string) => Promise<boolean>;
+    onExportImportClick?: () => void;
+    getDefaultStorage?: () => "local" | "cloud";
+    setDefaultStorage?: (storage: "local" | "cloud") => void;
   } | null;
 }
 
@@ -69,12 +74,16 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     updateScriptContent,
     updateScriptName,
     updateScriptStatus,
+    togglePinScript,
     duplicateScript,
     deleteScript,
     selectScript,
     markUnsavedChanges,
     moveToCloud,
     moveToLocal,
+    getDefaultStorage,
+    setDefaultStorage,
+    importScripts,
   } = useScripts();
 
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -89,6 +98,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   const [isResetting, setIsResetting] = React.useState(false);
   const [isSaving, setIsSaving] = React.useState(false);
   const [currentText, setCurrentText] = React.useState("");
+  const [exportImportOpen, setExportImportOpen] = React.useState(false);
+  const [pendingFocusTitle, setPendingFocusTitle] = React.useState(false);
 
   const isLoaded = settingsLoaded && scriptsLoaded;
 
@@ -124,7 +135,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             if (!success) {
               // If there are unsaved changes, show confirmation
               const confirmed = window.confirm(
-                "You have unsaved changes. Do you want to discard them and switch scripts?"
+                "You have unsaved changes. Do you want to discard them and switch scripts?",
               );
               if (confirmed) {
                 selectScript(id, true);
@@ -139,8 +150,12 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             return true;
           },
           onCreateScript: () => {
-            createScript().then(() => {
-              setIsEditorOpen(true);
+            createScript().then((newScript) => {
+              // Defer opening so React commits new selectedScript + currentText before panel opens
+              setTimeout(() => {
+                setIsEditorOpen(true);
+                setPendingFocusTitle(!!newScript);
+              }, 0);
             });
           },
           onRenameScript: updateScriptName,
@@ -153,13 +168,14 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           },
           onDeleteScript: deleteScript,
           onUpdateStatus: updateScriptStatus,
+          onTogglePin: togglePinScript,
           onOpenEnhancedEditor: (scriptId?: string) => {
             // If scriptId is provided, select it first
             if (scriptId && scriptId !== selectedScriptId) {
               const success = selectScript(scriptId, false);
               if (!success) {
                 const confirmed = window.confirm(
-                  "You have unsaved changes. Do you want to discard them and switch scripts?"
+                  "You have unsaved changes. Do you want to discard them and switch scripts?",
                 );
                 if (confirmed) {
                   selectScript(scriptId, true);
@@ -178,6 +194,9 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           },
           onMoveToCloud: moveToCloud,
           onMoveToLocal: moveToLocal,
+          onExportImportClick: () => setExportImportOpen(true),
+          getDefaultStorage,
+          setDefaultStorage,
         };
       },
     }),
@@ -191,9 +210,12 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
       duplicateScript,
       deleteScript,
       updateScriptStatus,
+      togglePinScript,
       moveToCloud,
       moveToLocal,
-    ]
+      getDefaultStorage,
+      setDefaultStorage,
+    ],
   );
 
   // Load selected script content when it changes
@@ -310,15 +332,15 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange);
       document.removeEventListener(
         "webkitfullscreenchange",
-        handleFullscreenChange
+        handleFullscreenChange,
       );
       document.removeEventListener(
         "mozfullscreenchange",
-        handleFullscreenChange
+        handleFullscreenChange,
       );
       document.removeEventListener(
         "MSFullscreenChange",
-        handleFullscreenChange
+        handleFullscreenChange,
       );
     };
   }, [isMounted, updateSetting]);
@@ -384,7 +406,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     (delta: number) => {
       scrollBy(delta);
     },
-    [scrollBy]
+    [scrollBy],
   );
 
   // Keyboard shortcuts
@@ -489,7 +511,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     if (isLoaded) {
       localStorage.setItem(
         "teleprompter-editor-open",
-        JSON.stringify(isEditorOpen)
+        JSON.stringify(isEditorOpen),
       );
     }
   }, [isEditorOpen, isLoaded]);
@@ -498,7 +520,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     if (isLoaded) {
       localStorage.setItem(
         "teleprompter-controls-open",
-        JSON.stringify(isControlsOpen)
+        JSON.stringify(isControlsOpen),
       );
     }
   }, [isControlsOpen, isLoaded]);
@@ -535,6 +557,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
               }}
               scrollSpeed={settings.scrollSpeed}
               scriptName={selectedScript?.name}
+              storageType={selectedScript?.storageType}
               hasUnsavedChanges={hasUnsavedChanges}
               isSaving={isSaving}
               onRename={
@@ -544,6 +567,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                     }
                   : undefined
               }
+              initialFocusTitle={pendingFocusTitle}
+              onTitleFocused={() => setPendingFocusTitle(false)}
               onOpenEnhancedEditor={() => setIsEnhancedEditorOpen(true)}
             />
           </SheetContent>
@@ -559,6 +584,12 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
             markUnsavedChanges();
           }}
           scriptName={selectedScript?.name}
+          storageType={selectedScript?.storageType}
+          onRename={
+            selectedScriptId
+              ? (newName: string) => updateScriptName(selectedScriptId, newName)
+              : undefined
+          }
           isOpen={isEnhancedEditorOpen}
           onOpenChange={setIsEnhancedEditorOpen}
           hasUnsavedChanges={hasUnsavedChanges}
@@ -583,6 +614,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
               onScrollDown={handleScrollDown}
               onReset={handleReset}
               onResetSettings={resetSettings}
+              onExportImportClick={() => setExportImportOpen(true)}
             />
           </SheetContent>
         </Sheet>
@@ -679,7 +711,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                       (settings.controlsPosition !== "left" &&
                         settings.controlsPosition !== "right" &&
                         settings.controlsPosition !== "hidden")) &&
-                      "bottom-6 left-1/2 -translate-x-1/2 flex-row"
+                      "bottom-6 left-1/2 -translate-x-1/2 flex-row",
                   )}
                 >
                   <div
@@ -688,7 +720,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                       settings.controlsPosition === "left" ||
                         settings.controlsPosition === "right"
                         ? "flex-col"
-                        : "flex-row items-center"
+                        : "flex-row items-center",
                     )}
                   >
                     {/* Play/Pause Button */}
@@ -714,7 +746,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                       onClick={handleSpeedDecrease}
                       className={cn(
                         "h-10 w-10 transition-all",
-                        isSpeedDecreasing && "scale-110"
+                        isSpeedDecreasing && "scale-110",
                       )}
                       title="Decrease Speed (←)"
                     >
@@ -734,7 +766,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                       onClick={handleSpeedIncrease}
                       className={cn(
                         "h-10 w-10 transition-all",
-                        isSpeedIncreasing && "scale-110"
+                        isSpeedIncreasing && "scale-110",
                       )}
                       title="Increase Speed (→)"
                     >
@@ -749,7 +781,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                       onClick={handleScrollUp}
                       className={cn(
                         "h-10 w-10 transition-all",
-                        isScrollingUp && "scale-110"
+                        isScrollingUp && "scale-110",
                       )}
                       title="Scroll Up (↑)"
                     >
@@ -764,7 +796,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                       onClick={handleScrollDown}
                       className={cn(
                         "h-10 w-10 transition-all",
-                        isScrollingDown && "scale-110"
+                        isScrollingDown && "scale-110",
                       )}
                       title="Scroll Down (↓)"
                     >
@@ -779,7 +811,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
                       onClick={handleReset}
                       className={cn(
                         "h-10 w-10 transition-all",
-                        isResetting && "scale-110"
+                        isResetting && "scale-110",
                       )}
                       title="Reset (ESC)"
                     >
@@ -816,6 +848,13 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           </Card>
         </div>
       </div>
+
+      <ExportImportDialog
+        open={exportImportOpen}
+        onOpenChange={setExportImportOpen}
+        scripts={scripts}
+        onImport={importScripts}
+      />
     </>
   );
 });

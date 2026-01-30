@@ -3,13 +3,13 @@ export type PlanType = "free" | "pro";
 
 // Limits for each plan
 export const FREE_LIMITS = {
-  cloudScripts: 5,
-  maxCharactersPerScript: 15000, // ~15 minutes speaking time (~2,500 words)
+  cloudScripts: 7,
+  maxCharactersPerScript: 30000, // ~30 minutes speaking time (~5,000 words)
 } as const;
 
 export const PRO_LIMITS = {
   cloudScripts: 500,
-  maxCharactersPerScript: Infinity, // Unlimited
+  maxCharactersPerScript: 450000, // ~10 hours speaking time (~75,000 words)
 } as const;
 
 // Get limits for a plan

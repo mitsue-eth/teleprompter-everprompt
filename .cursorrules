@@ -4,6 +4,43 @@
 
 This is a Next.js-based teleprompter application that allows users to create, manage, and display scripts with markdown support. The app features a multi-script management system with localStorage persistence, an enhanced markdown editor, and customizable teleprompter display settings.
 
+## Product Philosophy
+
+- **EverPrompt is** a script preparation and performance tool—the "last mile" between script and camera.
+- **Cursor** is where scripts are born (authoring IDE). **EverPrompt** is where scripts are performed and preserved.
+- Local-first today, cloud-enhanced later.
+- No user lock-in. No proprietary-only formats.
+
+EverPrompt is **NOT**: a brainstorming IDE, a publishing platform, or a content management system.
+
+## Data Ownership Principles
+
+- Scripts are first-class assets owned by the user.
+- **Export and import are non-negotiable features**—export is a guarantee of ownership and continuity, not a backup.
+- Markdown is the source of truth for script content.
+- If a user cancels a subscription: they retain access to all scripts, retain export functionality, and cloud sync is disabled while local content remains accessible.
+
+## Script Data Model
+
+Each script consists of:
+
+- `id` (string, UUID)
+- `name` (string, title)
+- `content` (string, Markdown—source of truth)
+- `status` (ScriptStatus: "draft" | "ready" | "completed")
+- `createdAt` (string, ISO timestamp)
+- `updatedAt` (string, ISO timestamp)
+- `storageType` ("local" | "cloud")
+- `origin` (optional: "local" | "imported" | "cloud")
+
+Script content must remain valid standalone Markdown. Optional YAML frontmatter in exports carries metadata for rehydration.
+
+## Export / Import
+
+- **Export**: All scripts at once; human-readable format; no cloud or login required; includes metadata. Format: ZIP containing `scripts/*.md` (one file per script with optional frontmatter) and `metadata.json`.
+- **Import**: Accepts EverPrompt export ZIP or individual Markdown files; recreates scripts with metadata if available; graceful handling of missing metadata; never overwrites existing scripts without user confirmation.
+- Export must work when signed out and when at free tier limit.
+
 ## Tech Stack
 
 - **Framework**: Next.js 16.1.1 (App Router)
@@ -44,6 +81,8 @@ This is a Next.js-based teleprompter application that allows users to create, ma
 
 /lib                    # Utility functions
   utils.ts              # cn() helper for className merging
+  export.ts             # Export scripts to ZIP (Markdown + metadata.json)
+  import.ts             # Import from ZIP or individual .md files
 ```
 
 ## Coding Conventions
@@ -231,28 +270,24 @@ if (version < CURRENT_VERSION) {
 ## Best Practices
 
 1. **Accessibility**
-
    - Use semantic HTML
    - Add `sr-only` text for icon-only buttons
    - Ensure keyboard navigation works
    - Use proper ARIA labels
 
 2. **Performance**
-
    - Use `useMemo` for expensive calculations
    - Use `useCallback` for stable function references
    - Debounce auto-save operations
    - Lazy load heavy components if needed
 
 3. **Code Quality**
-
    - Keep components focused and single-purpose
    - Extract reusable logic into hooks
    - Use TypeScript strictly
    - Handle edge cases (empty arrays, null values, etc.)
 
 4. **User Experience**
-
    - Provide loading states
    - Show save status feedback
    - Handle unsaved changes gracefully
@@ -302,9 +337,10 @@ if (version < CURRENT_VERSION) {
 
 ## Notes
 
-- The app uses localStorage for persistence (no backend)
-- Scripts are stored with versioning for future migrations
-- Settings are stored separately from scripts
-- The enhanced editor is a separate modal component
-- Markdown support is optional and can be toggled
-- All components are client-side (Next.js App Router)
+- The app uses localStorage for persistence (local-first); cloud sync is optional.
+- Scripts are stored with versioning for future migrations.
+- Export/import (ZIP + Markdown with frontmatter) ensures portability across browsers and devices.
+- Settings are stored separately from scripts.
+- The enhanced editor is a separate modal component.
+- Markdown support is optional and can be toggled.
+- All components are client-side (Next.js App Router).

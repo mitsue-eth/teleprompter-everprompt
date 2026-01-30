@@ -1,14 +1,15 @@
-"use client"
+"use client";
 
-import * as React from "react"
+import * as React from "react";
 import {
   IconCamera,
   IconSettings,
   IconHelp,
-} from "@tabler/icons-react"
+  IconFileExport,
+} from "@tabler/icons-react";
 
-import { Logo } from "@/components/logo"
-import { SidebarBackground } from "@/components/sidebar-background"
+import { Logo } from "@/components/logo";
+import { SidebarBackground } from "@/components/sidebar-background";
 import {
   Sidebar,
   SidebarContent,
@@ -19,10 +20,10 @@ import {
   SidebarMenuItem,
   SidebarSeparator,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { NavScripts } from "@/components/nav-scripts"
-import { cn } from "@/lib/utils"
-import type { Script, ScriptStatus } from "@/hooks/use-scripts"
+} from "@/components/ui/sidebar";
+import { NavScripts } from "@/components/nav-scripts";
+import { cn } from "@/lib/utils";
+import type { Script, ScriptStatus } from "@/hooks/use-scripts";
 
 const navItems = [
   {
@@ -30,22 +31,24 @@ const navItems = [
     url: "/",
     icon: IconCamera,
   },
-]
+];
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
-  onSettingsClick?: () => void
-  onHelpClick?: () => void
-  scripts?: Script[]
-  selectedScriptId?: string | null
-  onSelectScript?: (id: string) => boolean
-  onCreateScript?: () => void
-  onRenameScript?: (id: string, name: string) => void
-  onDuplicateScript?: (id: string) => void
-  onDeleteScript?: (id: string) => void
-  onUpdateStatus?: (id: string, status: ScriptStatus) => void
-  onOpenEnhancedEditor?: (scriptId?: string) => void
-  onMoveToCloud?: (id: string) => Promise<boolean>
-  onMoveToLocal?: (id: string) => Promise<boolean>
+  onSettingsClick?: () => void;
+  onHelpClick?: () => void;
+  scripts?: Script[];
+  selectedScriptId?: string | null;
+  onSelectScript?: (id: string) => boolean;
+  onCreateScript?: () => void;
+  onRenameScript?: (id: string, name: string) => void;
+  onDuplicateScript?: (id: string) => void;
+  onDeleteScript?: (id: string) => void;
+  onUpdateStatus?: (id: string, status: ScriptStatus) => void;
+  onTogglePin?: (id: string) => void;
+  onOpenEnhancedEditor?: (scriptId?: string) => void;
+  onMoveToCloud?: (id: string) => Promise<boolean>;
+  onMoveToLocal?: (id: string) => Promise<boolean>;
+  onExportImportClick?: () => void;
 }
 
 export function AppSidebar({
@@ -59,41 +62,54 @@ export function AppSidebar({
   onDuplicateScript,
   onDeleteScript,
   onUpdateStatus,
+  onTogglePin,
   onOpenEnhancedEditor,
   onMoveToCloud,
   onMoveToLocal,
+  onExportImportClick,
   ...props
 }: AppSidebarProps) {
-  const { setOpen, setOpenMobile, isMobile } = useSidebar()
+  const { setOpen, setOpenMobile, isMobile } = useSidebar();
 
   const handleSettingsClick = (e: React.MouseEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     // Close sidebar (mobile or desktop)
     if (isMobile) {
-      setOpenMobile(false)
+      setOpenMobile(false);
     } else {
-      setOpen(false)
+      setOpen(false);
     }
     // Open settings panel
-    onSettingsClick?.()
-  }
+    onSettingsClick?.();
+  };
 
   const handleHelpClick = (e: React.MouseEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     // Close sidebar (mobile or desktop)
     if (isMobile) {
-      setOpenMobile(false)
+      setOpenMobile(false);
     } else {
-      setOpen(false)
+      setOpen(false);
     }
     // Open help dialog
-    onHelpClick?.()
-  }
+    onHelpClick?.();
+  };
+
+  const handleExportImportClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (isMobile) {
+      setOpenMobile(false);
+    } else {
+      setOpen(false);
+    }
+    onExportImportClick?.();
+  };
+
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <div className="relative h-full flex flex-col">
         <SidebarBackground />
-        
+
         <SidebarHeader className="relative z-10 border-b border-sidebar-border/50 px-6 py-6 flex-shrink-0">
           <SidebarMenu>
             <SidebarMenuItem>
@@ -103,7 +119,10 @@ export function AppSidebar({
               >
                 <a href="/" className="flex items-center gap-3 group">
                   <div className="relative">
-                    <Logo variant="icon" className="!size-8 transition-transform group-hover:scale-105" />
+                    <Logo
+                      variant="icon"
+                      className="!size-8 transition-transform group-hover:scale-105"
+                    />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
@@ -130,7 +149,7 @@ export function AppSidebar({
                     className={cn(
                       "h-11 w-full justify-start gap-3 rounded-lg px-4",
                       "text-sidebar-foreground/80 hover:text-sidebar-foreground",
-                      "hover:bg-sidebar-accent/50 transition-colors"
+                      "hover:bg-sidebar-accent/50 transition-colors",
                     )}
                   >
                     <a href={item.url}>
@@ -160,6 +179,7 @@ export function AppSidebar({
                   onDuplicateScript={onDuplicateScript}
                   onDeleteScript={onDeleteScript}
                   onUpdateStatus={onUpdateStatus}
+                  onTogglePin={onTogglePin}
                   onOpenEnhancedEditor={onOpenEnhancedEditor}
                   onMoveToCloud={onMoveToCloud}
                   onMoveToLocal={onMoveToLocal}
@@ -179,7 +199,7 @@ export function AppSidebar({
                     "h-10 w-full justify-start gap-3 rounded-lg px-4",
                     "text-sidebar-foreground/60 hover:text-sidebar-foreground/80",
                     "hover:bg-sidebar-accent/30 transition-colors",
-                    "text-sm cursor-pointer"
+                    "text-sm cursor-pointer",
                   )}
                 >
                   <IconSettings className="size-4" />
@@ -187,6 +207,26 @@ export function AppSidebar({
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
+
+            {/* Export / Import Button */}
+            {onExportImportClick && (
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    onClick={handleExportImportClick}
+                    className={cn(
+                      "h-10 w-full justify-start gap-3 rounded-lg px-4",
+                      "text-sidebar-foreground/60 hover:text-sidebar-foreground/80",
+                      "hover:bg-sidebar-accent/30 transition-colors",
+                      "text-sm cursor-pointer",
+                    )}
+                  >
+                    <IconFileExport className="size-4" />
+                    <span className="text-sm">Export / Import</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            )}
 
             {/* About Project Button */}
             <SidebarMenu>
@@ -197,7 +237,7 @@ export function AppSidebar({
                     "h-10 w-full justify-start gap-3 rounded-lg px-4",
                     "text-sidebar-foreground/60 hover:text-sidebar-foreground/80",
                     "hover:bg-sidebar-accent/30 transition-colors",
-                    "text-sm cursor-pointer"
+                    "text-sm cursor-pointer",
                   )}
                 >
                   <IconHelp className="size-4" />
@@ -209,5 +249,5 @@ export function AppSidebar({
         </SidebarFooter>
       </div>
     </Sidebar>
-  )
+  );
 }

@@ -21,9 +21,13 @@ export default function Home() {
     onDuplicateScript: (id: string) => void;
     onDeleteScript: (id: string) => void;
     onUpdateStatus: (id: string, status: ScriptStatus) => void;
+    onTogglePin: (id: string) => void;
     onOpenEnhancedEditor: (scriptId?: string) => void;
     onMoveToCloud?: (id: string) => Promise<boolean>;
     onMoveToLocal?: (id: string) => Promise<boolean>;
+    onExportImportClick?: () => void;
+    getDefaultStorage?: () => "local" | "cloud";
+    setDefaultStorage?: (storage: "local" | "cloud") => void;
   } | null>(null);
 
   const handleSettingsClick = React.useCallback(() => {
@@ -83,9 +87,11 @@ export default function Home() {
         onDuplicateScript={scriptHandlers?.onDuplicateScript}
         onDeleteScript={scriptHandlers?.onDeleteScript}
         onUpdateStatus={scriptHandlers?.onUpdateStatus}
+        onTogglePin={scriptHandlers?.onTogglePin}
         onOpenEnhancedEditor={scriptHandlers?.onOpenEnhancedEditor}
         onMoveToCloud={scriptHandlers?.onMoveToCloud}
         onMoveToLocal={scriptHandlers?.onMoveToLocal}
+        onExportImportClick={scriptHandlers?.onExportImportClick}
       />
       <SidebarInset>
         <SiteHeader
@@ -93,6 +99,8 @@ export default function Home() {
             scriptHandlers?.scripts?.filter((s) => s.storageType === "cloud")
               .length ?? 0
           }
+          getDefaultStorage={scriptHandlers?.getDefaultStorage}
+          setDefaultStorage={scriptHandlers?.setDefaultStorage}
         />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
