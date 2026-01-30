@@ -137,6 +137,9 @@ export function NavScripts({
   const [movingScriptId, setMovingScriptId] = React.useState<string | null>(
     null,
   );
+  const [movingToLocalScriptId, setMovingToLocalScriptId] = React.useState<string | null>(
+    null,
+  );
   const [sortBy, setSortBy] = React.useState<SortOption>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem(SORT_STORAGE_KEY);
@@ -203,8 +206,16 @@ export function NavScripts({
     }
   };
 
-  const handleMoveToLocal = async (id: string) => {
-    if (!onMoveToLocal) return;
+  // Show confirmation dialog before moving to local
+  const handleMoveToLocalRequest = (id: string) => {
+    setMovingToLocalScriptId(id);
+  };
+
+  // Actually move to local after confirmation
+  const handleMoveToLocalConfirm = async () => {
+    const id = movingToLocalScriptId;
+    setMovingToLocalScriptId(null);
+    if (!id || !onMoveToLocal) return;
     setMovingScriptId(id);
     try {
       const success = await onMoveToLocal(id);
@@ -416,7 +427,7 @@ export function NavScripts({
                         <DropdownMenuItem
                           onClick={() => {
                             if (script.storageType === "cloud") {
-                              handleMoveToLocal(script.id);
+                              handleMoveToLocalRequest(script.id);
                             }
                           }}
                           disabled={
@@ -632,6 +643,35 @@ export function NavScripts({
             <Button variant="destructive" onClick={handleDeleteConfirm}>
               <IconTrash className="h-4 w-4 mr-2" />
               Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Move to Local Confirmation Dialog */}
+      <Dialog
+        open={movingToLocalScriptId !== null}
+        onOpenChange={() => setMovingToLocalScriptId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Move to Local Storage?</DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>
+                This will <strong>remove the script from cloud storage</strong> and keep it only in this browser.
+              </p>
+              <p className="text-amber-500">
+                The script will no longer sync across devices and will only exist on this machine.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMovingToLocalScriptId(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleMoveToLocalConfirm}>
+              <IconDeviceDesktop className="h-4 w-4 mr-2" />
+              Move to Local
             </Button>
           </DialogFooter>
         </DialogContent>
