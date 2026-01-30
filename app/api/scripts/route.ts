@@ -18,6 +18,9 @@ export async function GET() {
       orderBy: {
         updatedAt: "desc",
       },
+      include: {
+        projectLinks: { select: { projectId: true } },
+      },
     })
 
     // Convert to JSON-serializable format
@@ -25,10 +28,19 @@ export async function GET() {
       id: script.id,
       name: script.name,
       content: script.content,
+      bulletContent: script.bulletContent ?? null,
+      cueContent: script.cueContent ?? null,
       status: script.status as "draft" | "ready" | "completed",
       createdAt: script.createdAt.toISOString(),
       updatedAt: script.updatedAt.toISOString(),
       storageType: "cloud" as const,
+      projectIds: script.projectLinks.map((pl) => pl.projectId),
+      isPinned: script.isPinned,
+      parentScriptId: script.parentScriptId,
+      variantType: script.variantType,
+      lastRecordedAt: script.lastRecordedAt?.toISOString() ?? null,
+      lastRehearsedAt: script.lastRehearsedAt?.toISOString() ?? null,
+      rehearsalCount: script.rehearsalCount,
     }))
 
     return NextResponse.json(formattedScripts)
@@ -47,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json()
-    const { name, content, status } = body
+    const { name, content, status, parentScriptId, variantType } = body
 
     if (!name || typeof name !== "string") {
       return NextResponse.json({ error: "Name is required" }, { status: 400 })
@@ -59,6 +71,8 @@ export async function POST(req: Request) {
         content: content || "",
         status: status || "draft",
         userId: session.user.id,
+        ...(parentScriptId && typeof parentScriptId === "string" && { parentScriptId }),
+        ...(variantType && typeof variantType === "string" && { variantType }),
       },
     })
 
@@ -66,10 +80,16 @@ export async function POST(req: Request) {
       id: script.id,
       name: script.name,
       content: script.content,
+      bulletContent: script.bulletContent ?? null,
+      cueContent: script.cueContent ?? null,
       status: script.status as "draft" | "ready" | "completed",
       createdAt: script.createdAt.toISOString(),
       updatedAt: script.updatedAt.toISOString(),
       storageType: "cloud" as const,
+      projectIds: [],
+      isPinned: script.isPinned,
+      parentScriptId: script.parentScriptId,
+      variantType: script.variantType,
     })
   } catch (error) {
     console.error("Error creating script:", error)

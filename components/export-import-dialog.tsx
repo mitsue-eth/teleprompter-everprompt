@@ -18,11 +18,19 @@ import {
   type ImportedScript,
 } from "@/lib/import";
 
+interface ProjectForExport {
+  id: string;
+  name: string;
+  scriptIds: string[];
+}
+
 interface ExportImportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   scripts: ScriptForExport[];
   onImport: (scripts: ImportedScript[]) => void;
+  projects?: ProjectForExport[];
+  onExportSuccess?: () => void;
 }
 
 export function ExportImportDialog({
@@ -30,18 +38,30 @@ export function ExportImportDialog({
   onOpenChange,
   scripts,
   onImport,
+  projects = [],
+  onExportSuccess,
 }: ExportImportDialogProps) {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   const [isImporting, setIsImporting] = React.useState(false);
   const [importError, setImportError] = React.useState<string | null>(null);
+  const [exportScope, setExportScope] = React.useState<"all" | string>("all");
+
+  const scriptsToExport = React.useMemo(() => {
+    if (exportScope === "all") return scripts;
+    const project = projects.find((p) => p.id === exportScope);
+    if (!project) return scripts;
+    const idSet = new Set(project.scriptIds);
+    return scripts.filter((s) => idSet.has(s.id));
+  }, [scripts, projects, exportScope]);
 
   const handleExport = React.useCallback(async () => {
-    if (scripts.length === 0) return;
+    if (scriptsToExport.length === 0) return;
     setIsExporting(true);
     setImportError(null);
     try {
-      await downloadExport(scripts);
+      await downloadExport(scriptsToExport);
+      onExportSuccess?.();
       onOpenChange(false);
     } catch (err) {
       console.error("Export failed:", err);
@@ -49,7 +69,7 @@ export function ExportImportDialog({
     } finally {
       setIsExporting(false);
     }
-  }, [scripts, onOpenChange]);
+  }, [scriptsToExport, onOpenChange, onExportSuccess]);
 
   const handleImportFile = React.useCallback(
     async (file: File) => {
@@ -129,16 +149,35 @@ export function ExportImportDialog({
               <Download className="h-4 w-4" />
               Export
             </h4>
+            {projects.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">
+                  Scope
+                </label>
+                <select
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={exportScope}
+                  onChange={(e) => setExportScope(e.target.value)}
+                >
+                  <option value="all">All scripts ({scripts.length})</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.scriptIds.length} scripts)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">
-              Download all {scripts.length} script
-              {scripts.length !== 1 ? "s" : ""} as a ZIP file (Markdown +
-              metadata). No account required.
+              Download {scriptsToExport.length} script
+              {scriptsToExport.length !== 1 ? "s" : ""} as a ZIP file (Markdown
+              + metadata). No account required.
             </p>
             <Button
               variant="outline"
               className="w-full gap-2 cursor-pointer"
               onClick={handleExport}
-              disabled={scripts.length === 0 || isExporting}
+              disabled={scriptsToExport.length === 0 || isExporting}
             >
               <FileArchive className="h-4 w-4" />
               {isExporting ? "Exporting…" : "Download ZIP"}

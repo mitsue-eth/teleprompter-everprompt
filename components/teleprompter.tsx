@@ -4,7 +4,9 @@ import * as React from "react";
 import { useTeleprompterSettings } from "@/hooks/use-teleprompter-settings";
 import { useTeleprompterScroll } from "@/hooks/use-teleprompter-scroll";
 import { useScripts } from "@/hooks/use-scripts";
+import { useProjects } from "@/hooks/use-projects";
 import { ExportImportDialog } from "@/components/export-import-dialog";
+import { ExportReminder } from "@/components/export-reminder";
 import { TeleprompterEditor } from "@/components/teleprompter-editor";
 import { EnhancedScriptEditor } from "@/components/enhanced-script-editor";
 import { TeleprompterDisplay } from "@/components/teleprompter-display";
@@ -32,7 +34,7 @@ import {
   Minimize,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ScriptStatus } from "@/hooks/use-scripts";
+import type { Script, ScriptStatus, ScriptViewMode } from "@/hooks/use-scripts";
 
 export interface TeleprompterRef {
   openSettings: () => void;
@@ -54,6 +56,31 @@ export interface TeleprompterRef {
     onExportImportClick?: () => void;
     getDefaultStorage?: () => "local" | "cloud";
     setDefaultStorage?: (storage: "local" | "cloud") => void;
+    projects: ReturnType<typeof useProjects>["projects"];
+    selectedProjectId: string | null;
+    onSelectProject: (id: string | null) => void;
+    onAddScriptToProject: (
+      scriptId: string,
+      projectId: string,
+    ) => Promise<boolean>;
+    onRemoveScriptFromProject: (
+      scriptId: string,
+      projectId: string,
+    ) => Promise<boolean>;
+    onCreateProject: (
+      name: string,
+      description?: string,
+    ) => Promise<{ id: string; name: string; scriptIds: string[] } | null>;
+    onUpdateProject: (
+      id: string,
+      updates: { name?: string; description?: string | null },
+    ) => Promise<boolean>;
+    onDeleteProject: (id: string) => Promise<boolean>;
+    onCreateVariant?: (
+      scriptId: string,
+      variantType: string,
+    ) => Promise<Script | null>;
+    onRecordRehearsal?: (scriptId: string) => Promise<boolean>;
   } | null;
 }
 
@@ -84,7 +111,69 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
     getDefaultStorage,
     setDefaultStorage,
     importScripts,
+    refetchCloudScripts,
+    updateScriptProjectIds,
+    updateScriptBulletContent,
+    updateScriptCueContent,
+    createVariant,
+    recordRehearsal,
   } = useScripts();
+
+  const {
+    projects,
+    createProject,
+    updateProject,
+    deleteProject,
+    addScriptToProject,
+    removeScriptFromProject,
+  } = useProjects();
+
+  const [selectedProjectId, setSelectedProjectId] = React.useState<
+    string | null
+  >(null);
+
+  const scriptsFiltered = React.useMemo(() => {
+    if (!selectedProjectId) return scripts;
+    return scripts.filter((s) => s.projectIds?.includes(selectedProjectId));
+  }, [scripts, selectedProjectId]);
+
+  const handleAddScriptToProject = React.useCallback(
+    async (scriptId: string, projectId: string) => {
+      const script = scripts.find((s) => s.id === scriptId);
+      if (!script) return false;
+      if (script.storageType === "cloud") {
+        const ok = await addScriptToProject(projectId, scriptId);
+        if (ok) refetchCloudScripts();
+        return ok;
+      }
+      const ids = script.projectIds ?? [];
+      if (ids.includes(projectId)) return true;
+      updateScriptProjectIds(scriptId, [...ids, projectId]);
+      return true;
+    },
+    [scripts, addScriptToProject, refetchCloudScripts, updateScriptProjectIds],
+  );
+
+  const handleRemoveScriptFromProject = React.useCallback(
+    async (scriptId: string, projectId: string) => {
+      const script = scripts.find((s) => s.id === scriptId);
+      if (!script) return false;
+      if (script.storageType === "cloud") {
+        const ok = await removeScriptFromProject(projectId, scriptId);
+        if (ok) refetchCloudScripts();
+        return ok;
+      }
+      const ids = (script.projectIds ?? []).filter((id) => id !== projectId);
+      updateScriptProjectIds(scriptId, ids);
+      return true;
+    },
+    [
+      scripts,
+      removeScriptFromProject,
+      refetchCloudScripts,
+      updateScriptProjectIds,
+    ],
+  );
 
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [isEditorOpen, setIsEditorOpen] = React.useState(false);
@@ -100,11 +189,31 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   const [currentText, setCurrentText] = React.useState("");
   const [exportImportOpen, setExportImportOpen] = React.useState(false);
   const [pendingFocusTitle, setPendingFocusTitle] = React.useState(false);
+  const [scriptViewMode, setScriptViewMode] =
+    React.useState<ScriptViewMode>("full");
 
   const isLoaded = settingsLoaded && scriptsLoaded;
 
-  // Get the current script text or fallback to settings.text for backward compatibility
-  const displayText = selectedScript?.content ?? currentText;
+  // Get the current script text based on view mode (full / bullet / cue) or fallback to settings.text
+  const displayText = React.useMemo(() => {
+    if (!selectedScript) return currentText;
+    switch (scriptViewMode) {
+      case "bullet":
+        return (
+          (selectedScript.bulletContent?.trim()
+            ? selectedScript.bulletContent
+            : selectedScript.content) ?? currentText
+        );
+      case "cue":
+        return (
+          (selectedScript.cueContent?.trim()
+            ? selectedScript.cueContent
+            : selectedScript.content) ?? currentText
+        );
+      default:
+        return selectedScript.content ?? currentText;
+    }
+  }, [selectedScript, scriptViewMode, currentText]);
 
   // Expose methods to parent
   React.useImperativeHandle(
@@ -128,7 +237,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
       getScriptHandlers: () => {
         if (!isLoaded) return null;
         return {
-          scripts,
+          scripts: scriptsFiltered,
           selectedScriptId,
           onSelectScript: (id: string) => {
             const success = selectScript(id, false);
@@ -197,12 +306,26 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           onExportImportClick: () => setExportImportOpen(true),
           getDefaultStorage,
           setDefaultStorage,
+          projects,
+          selectedProjectId,
+          onSelectProject: setSelectedProjectId,
+          onAddScriptToProject: handleAddScriptToProject,
+          onRemoveScriptFromProject: handleRemoveScriptFromProject,
+          onCreateProject: async (name, description) => {
+            const p = await createProject(name, description);
+            return p
+              ? { id: p.id, name: p.name, scriptIds: p.scriptIds }
+              : null;
+          },
+          onUpdateProject: updateProject,
+          onDeleteProject: deleteProject,
+          onCreateVariant: createVariant,
         };
       },
     }),
     [
       isLoaded,
-      scripts,
+      scriptsFiltered,
       selectedScriptId,
       selectScript,
       createScript,
@@ -215,6 +338,14 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
       moveToLocal,
       getDefaultStorage,
       setDefaultStorage,
+      projects,
+      selectedProjectId,
+      handleAddScriptToProject,
+      handleRemoveScriptFromProject,
+      createProject,
+      updateProject,
+      deleteProject,
+      recordRehearsal,
     ],
   );
 
@@ -595,6 +726,24 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
           scrollSpeed={settings.scrollSpeed}
+          bulletContent={selectedScript?.bulletContent ?? null}
+          cueContent={selectedScript?.cueContent ?? null}
+          onBulletChange={
+            selectedScriptId
+              ? (bulletContent) => {
+                  updateScriptBulletContent(selectedScriptId, bulletContent);
+                  markUnsavedChanges();
+                }
+              : undefined
+          }
+          onCueChange={
+            selectedScriptId
+              ? (cueContent) => {
+                  updateScriptCueContent(selectedScriptId, cueContent);
+                  markUnsavedChanges();
+                }
+              : undefined
+          }
         />
       )}
 
@@ -615,237 +764,247 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
               onReset={handleReset}
               onResetSettings={resetSettings}
               onExportImportClick={() => setExportImportOpen(true)}
+              outlineContent={displayText}
+              outlineContentRef={contentRef}
             />
           </SheetContent>
         </Sheet>
       )}
 
-      <div className="relative flex h-[calc(100vh-var(--header-height)-3rem)] gap-4 px-4 lg:px-6">
-        {/* Center Panel - Display */}
-        <div ref={displayCardRef} className="relative flex-1 overflow-hidden">
-          <Card className="relative h-full w-full overflow-hidden p-0">
-            {/* Editor Button - positioned in top-left corner of display area */}
-            {/* Hide when fullscreen or when hideButtonsDuringPlayback is enabled and playing */}
-            {isMounted &&
-              !isEditorOpen &&
-              !settings.isFullscreen &&
-              !(settings.hideButtonsDuringPlayback && isPlaying) && (
-                <Sheet open={isEditorOpen} onOpenChange={setIsEditorOpen}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute left-4 top-4 z-40 h-12 w-12 rounded-full shadow-lg bg-background/80 backdrop-blur-sm border-2 hover:bg-background/90 transition-all"
-                    >
-                      <FileText className="h-5 w-5" />
-                      <span className="sr-only">Open Editor</span>
-                    </Button>
-                  </SheetTrigger>
-                </Sheet>
-              )}
+      <div className="flex flex-col gap-2 h-[calc(100vh-var(--header-height)-3rem)] px-4 lg:px-6">
+        <ExportReminder
+          onExportClick={() => setExportImportOpen(true)}
+          className="shrink-0"
+        />
+        <div className="relative flex flex-1 gap-4 min-h-0">
+          {/* Center Panel - Display */}
+          <div ref={displayCardRef} className="relative flex-1 overflow-hidden">
+            <Card className="relative h-full w-full overflow-hidden p-0">
+              {/* Editor Button - positioned in top-left corner of display area */}
+              {/* Hide when fullscreen or when hideButtonsDuringPlayback is enabled and playing */}
+              {isMounted &&
+                !isEditorOpen &&
+                !settings.isFullscreen &&
+                !(settings.hideButtonsDuringPlayback && isPlaying) && (
+                  <Sheet open={isEditorOpen} onOpenChange={setIsEditorOpen}>
+                    <SheetTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="absolute left-4 top-4 z-40 h-12 w-12 rounded-full shadow-lg bg-background/80 backdrop-blur-sm border-2 hover:bg-background/90 transition-all"
+                      >
+                        <FileText className="h-5 w-5" />
+                        <span className="sr-only">Open Editor</span>
+                      </Button>
+                    </SheetTrigger>
+                  </Sheet>
+                )}
 
-            {/* Controls Button - positioned in top-right corner of display area */}
-            {/* Hide when fullscreen or when hideButtonsDuringPlayback is enabled and playing */}
-            {isMounted &&
-              !isControlsOpen &&
-              !settings.isFullscreen &&
-              !(settings.hideButtonsDuringPlayback && isPlaying) && (
-                <Sheet open={isControlsOpen} onOpenChange={setIsControlsOpen}>
-                  <SheetTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="absolute right-4 top-4 z-40 h-12 w-12 rounded-full shadow-lg bg-background/80 backdrop-blur-sm border-2 hover:bg-background/90 transition-all"
-                    >
-                      <Settings className="h-5 w-5" />
-                      <span className="sr-only">Open Controls</span>
-                    </Button>
-                  </SheetTrigger>
-                </Sheet>
-              )}
+              {/* Controls Button - positioned in top-right corner of display area */}
+              {/* Hide when fullscreen or when hideButtonsDuringPlayback is enabled and playing */}
+              {isMounted &&
+                !isControlsOpen &&
+                !settings.isFullscreen &&
+                !(settings.hideButtonsDuringPlayback && isPlaying) && (
+                  <Sheet open={isControlsOpen} onOpenChange={setIsControlsOpen}>
+                    <SheetTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="absolute right-4 top-4 z-40 h-12 w-12 rounded-full shadow-lg bg-background/80 backdrop-blur-sm border-2 hover:bg-background/90 transition-all"
+                      >
+                        <Settings className="h-5 w-5" />
+                        <span className="sr-only">Open Controls</span>
+                      </Button>
+                    </SheetTrigger>
+                  </Sheet>
+                )}
 
-            <TeleprompterDisplay
-              text={displayText}
-              fontSize={settings.fontSize}
-              textWidth={settings.textWidth}
-              horizontalPosition={settings.horizontalPosition}
-              verticalPosition={settings.verticalPosition}
-              horizontalOffset={settings.horizontalOffset}
-              verticalOffset={settings.verticalOffset}
-              textAlign={settings.textAlign}
-              scrollPosition={scrollPosition}
-              containerRef={containerRef}
-              contentRef={contentRef}
-              onWheelScroll={handleWheelScroll}
-              enableMarkdown={settings.enableMarkdown}
-              showCrosshair={settings.showCrosshair}
-              crosshairX={settings.crosshairX}
-              crosshairY={settings.crosshairY}
-              crosshairShape={settings.crosshairShape}
-              crosshairSize={settings.crosshairSize}
-              crosshairColor={settings.crosshairColor}
-              crosshairIntensity={settings.crosshairIntensity}
-              textColor={settings.textColor}
-              textOpacity={settings.textOpacity}
-              lineHeight={settings.lineHeight}
-              paragraphSpacing={settings.paragraphSpacing}
-              onOpenEditor={() => setIsEditorOpen(true)}
-              scrollSpeed={settings.scrollSpeed}
-              isFullscreen={settings.isFullscreen}
-            />
+              <TeleprompterDisplay
+                text={displayText}
+                fontSize={settings.fontSize}
+                textWidth={settings.textWidth}
+                horizontalPosition={settings.horizontalPosition}
+                verticalPosition={settings.verticalPosition}
+                horizontalOffset={settings.horizontalOffset}
+                verticalOffset={settings.verticalOffset}
+                textAlign={settings.textAlign}
+                scrollPosition={scrollPosition}
+                containerRef={containerRef}
+                contentRef={contentRef}
+                onWheelScroll={handleWheelScroll}
+                enableMarkdown={settings.enableMarkdown}
+                showCrosshair={settings.showCrosshair}
+                crosshairX={settings.crosshairX}
+                crosshairY={settings.crosshairY}
+                crosshairShape={settings.crosshairShape}
+                crosshairSize={settings.crosshairSize}
+                crosshairColor={settings.crosshairColor}
+                crosshairIntensity={settings.crosshairIntensity}
+                textColor={settings.textColor}
+                textOpacity={settings.textOpacity}
+                lineHeight={settings.lineHeight}
+                paragraphSpacing={settings.paragraphSpacing}
+                onOpenEditor={() => setIsEditorOpen(true)}
+                scrollSpeed={settings.scrollSpeed}
+                isFullscreen={settings.isFullscreen}
+                scriptViewMode={scriptViewMode}
+                onScriptViewModeChange={setScriptViewMode}
+              />
 
-            {/* Floating Controls - only show when panels are closed, not fullscreen, and not hidden */}
-            {isMounted &&
-              !isEditorOpen &&
-              !isControlsOpen &&
-              !settings.isFullscreen &&
-              settings.controlsPosition !== "hidden" && (
-                <div
-                  className={cn(
-                    "absolute z-50 flex gap-2",
-                    settings.controlsPosition === "left" &&
-                      "left-6 top-1/2 -translate-y-1/2 flex-col",
-                    settings.controlsPosition === "right" &&
-                      "right-6 top-1/2 -translate-y-1/2 flex-col",
-                    (settings.controlsPosition === "center" ||
-                      (settings.controlsPosition !== "left" &&
-                        settings.controlsPosition !== "right" &&
-                        settings.controlsPosition !== "hidden")) &&
-                      "bottom-6 left-1/2 -translate-x-1/2 flex-row",
-                  )}
-                >
+              {/* Floating Controls - only show when panels are closed, not fullscreen, and not hidden */}
+              {isMounted &&
+                !isEditorOpen &&
+                !isControlsOpen &&
+                !settings.isFullscreen &&
+                settings.controlsPosition !== "hidden" && (
                   <div
                     className={cn(
-                      "flex gap-2 bg-background/90 backdrop-blur-sm border border-border/50 rounded-lg p-2 shadow-lg",
-                      settings.controlsPosition === "left" ||
-                        settings.controlsPosition === "right"
-                        ? "flex-col"
-                        : "flex-row items-center",
+                      "absolute z-50 flex gap-2",
+                      settings.controlsPosition === "left" &&
+                        "left-6 top-1/2 -translate-y-1/2 flex-col",
+                      settings.controlsPosition === "right" &&
+                        "right-6 top-1/2 -translate-y-1/2 flex-col",
+                      (settings.controlsPosition === "center" ||
+                        (settings.controlsPosition !== "left" &&
+                          settings.controlsPosition !== "right" &&
+                          settings.controlsPosition !== "hidden")) &&
+                        "bottom-6 left-1/2 -translate-x-1/2 flex-row",
                     )}
                   >
-                    {/* Play/Pause Button */}
-                    <Button
-                      variant={isPlaying ? "default" : "outline"}
-                      size="icon"
-                      onClick={handlePlayPause}
-                      className="h-10 w-10"
-                      title="Play/Pause (Space)"
-                    >
-                      {isPlaying ? (
-                        <Pause className="h-5 w-5" />
-                      ) : (
-                        <Play className="h-5 w-5" />
-                      )}
-                      <span className="sr-only">Play/Pause</span>
-                    </Button>
-
-                    {/* Speed Decrease Button (Left Arrow) */}
-                    <Button
-                      variant={isSpeedDecreasing ? "default" : "outline"}
-                      size="icon"
-                      onClick={handleSpeedDecrease}
+                    <div
                       className={cn(
-                        "h-10 w-10 transition-all",
-                        isSpeedDecreasing && "scale-110",
+                        "flex gap-2 bg-background/90 backdrop-blur-sm border border-border/50 rounded-lg p-2 shadow-lg",
+                        settings.controlsPosition === "left" ||
+                          settings.controlsPosition === "right"
+                          ? "flex-col"
+                          : "flex-row items-center",
                       )}
-                      title="Decrease Speed (←)"
                     >
-                      <ChevronLeft className="h-5 w-5" />
-                      <span className="sr-only">Decrease Speed</span>
-                    </Button>
+                      {/* Play/Pause Button */}
+                      <Button
+                        variant={isPlaying ? "default" : "outline"}
+                        size="icon"
+                        onClick={handlePlayPause}
+                        className="h-10 w-10"
+                        title="Play/Pause (Space)"
+                      >
+                        {isPlaying ? (
+                          <Pause className="h-5 w-5" />
+                        ) : (
+                          <Play className="h-5 w-5" />
+                        )}
+                        <span className="sr-only">Play/Pause</span>
+                      </Button>
 
-                    {/* Speed Display */}
-                    <div className="px-1.5 py-2 text-[10px] font-medium text-foreground min-w-[2rem] text-center leading-tight">
-                      {settings.scrollSpeed.toFixed(2)}x
+                      {/* Speed Decrease Button (Left Arrow) */}
+                      <Button
+                        variant={isSpeedDecreasing ? "default" : "outline"}
+                        size="icon"
+                        onClick={handleSpeedDecrease}
+                        className={cn(
+                          "h-10 w-10 transition-all",
+                          isSpeedDecreasing && "scale-110",
+                        )}
+                        title="Decrease Speed (←)"
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                        <span className="sr-only">Decrease Speed</span>
+                      </Button>
+
+                      {/* Speed Display */}
+                      <div className="px-1.5 py-2 text-[10px] font-medium text-foreground min-w-[2rem] text-center leading-tight">
+                        {settings.scrollSpeed.toFixed(2)}x
+                      </div>
+
+                      {/* Speed Increase Button (Right Arrow) */}
+                      <Button
+                        variant={isSpeedIncreasing ? "default" : "outline"}
+                        size="icon"
+                        onClick={handleSpeedIncrease}
+                        className={cn(
+                          "h-10 w-10 transition-all",
+                          isSpeedIncreasing && "scale-110",
+                        )}
+                        title="Increase Speed (→)"
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                        <span className="sr-only">Increase Speed</span>
+                      </Button>
+
+                      {/* Scroll Up Button */}
+                      <Button
+                        variant={isScrollingUp ? "default" : "outline"}
+                        size="icon"
+                        onClick={handleScrollUp}
+                        className={cn(
+                          "h-10 w-10 transition-all",
+                          isScrollingUp && "scale-110",
+                        )}
+                        title="Scroll Up (↑)"
+                      >
+                        <ChevronUp className="h-5 w-5" />
+                        <span className="sr-only">Scroll Up</span>
+                      </Button>
+
+                      {/* Scroll Down Button */}
+                      <Button
+                        variant={isScrollingDown ? "default" : "outline"}
+                        size="icon"
+                        onClick={handleScrollDown}
+                        className={cn(
+                          "h-10 w-10 transition-all",
+                          isScrollingDown && "scale-110",
+                        )}
+                        title="Scroll Down (↓)"
+                      >
+                        <ChevronDown className="h-5 w-5" />
+                        <span className="sr-only">Scroll Down</span>
+                      </Button>
+
+                      {/* Reset Button */}
+                      <Button
+                        variant={isResetting ? "default" : "outline"}
+                        size="icon"
+                        onClick={handleReset}
+                        className={cn(
+                          "h-10 w-10 transition-all",
+                          isResetting && "scale-110",
+                        )}
+                        title="Reset (ESC)"
+                      >
+                        <RotateCcw className="h-5 w-5" />
+                        <span className="sr-only">Reset</span>
+                      </Button>
+
+                      {/* Fullscreen Toggle Button */}
+                      <Button
+                        variant={settings.isFullscreen ? "default" : "outline"}
+                        size="icon"
+                        onClick={handleToggleFullscreen}
+                        className="h-10 w-10 transition-all"
+                        title={
+                          settings.isFullscreen
+                            ? "Exit Fullscreen (ESC)"
+                            : "Enter Fullscreen"
+                        }
+                      >
+                        {settings.isFullscreen ? (
+                          <Minimize className="h-5 w-5" />
+                        ) : (
+                          <Maximize className="h-5 w-5" />
+                        )}
+                        <span className="sr-only">
+                          {settings.isFullscreen
+                            ? "Exit Fullscreen"
+                            : "Enter Fullscreen"}
+                        </span>
+                      </Button>
                     </div>
-
-                    {/* Speed Increase Button (Right Arrow) */}
-                    <Button
-                      variant={isSpeedIncreasing ? "default" : "outline"}
-                      size="icon"
-                      onClick={handleSpeedIncrease}
-                      className={cn(
-                        "h-10 w-10 transition-all",
-                        isSpeedIncreasing && "scale-110",
-                      )}
-                      title="Increase Speed (→)"
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                      <span className="sr-only">Increase Speed</span>
-                    </Button>
-
-                    {/* Scroll Up Button */}
-                    <Button
-                      variant={isScrollingUp ? "default" : "outline"}
-                      size="icon"
-                      onClick={handleScrollUp}
-                      className={cn(
-                        "h-10 w-10 transition-all",
-                        isScrollingUp && "scale-110",
-                      )}
-                      title="Scroll Up (↑)"
-                    >
-                      <ChevronUp className="h-5 w-5" />
-                      <span className="sr-only">Scroll Up</span>
-                    </Button>
-
-                    {/* Scroll Down Button */}
-                    <Button
-                      variant={isScrollingDown ? "default" : "outline"}
-                      size="icon"
-                      onClick={handleScrollDown}
-                      className={cn(
-                        "h-10 w-10 transition-all",
-                        isScrollingDown && "scale-110",
-                      )}
-                      title="Scroll Down (↓)"
-                    >
-                      <ChevronDown className="h-5 w-5" />
-                      <span className="sr-only">Scroll Down</span>
-                    </Button>
-
-                    {/* Reset Button */}
-                    <Button
-                      variant={isResetting ? "default" : "outline"}
-                      size="icon"
-                      onClick={handleReset}
-                      className={cn(
-                        "h-10 w-10 transition-all",
-                        isResetting && "scale-110",
-                      )}
-                      title="Reset (ESC)"
-                    >
-                      <RotateCcw className="h-5 w-5" />
-                      <span className="sr-only">Reset</span>
-                    </Button>
-
-                    {/* Fullscreen Toggle Button */}
-                    <Button
-                      variant={settings.isFullscreen ? "default" : "outline"}
-                      size="icon"
-                      onClick={handleToggleFullscreen}
-                      className="h-10 w-10 transition-all"
-                      title={
-                        settings.isFullscreen
-                          ? "Exit Fullscreen (ESC)"
-                          : "Enter Fullscreen"
-                      }
-                    >
-                      {settings.isFullscreen ? (
-                        <Minimize className="h-5 w-5" />
-                      ) : (
-                        <Maximize className="h-5 w-5" />
-                      )}
-                      <span className="sr-only">
-                        {settings.isFullscreen
-                          ? "Exit Fullscreen"
-                          : "Enter Fullscreen"}
-                      </span>
-                    </Button>
                   </div>
-                </div>
-              )}
-          </Card>
+                )}
+            </Card>
+          </div>
         </div>
       </div>
 
@@ -853,7 +1012,25 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
         open={exportImportOpen}
         onOpenChange={setExportImportOpen}
         scripts={scripts}
+        projects={projects.map((p) => ({
+          id: p.id,
+          name: p.name,
+          scriptIds: p.scriptIds,
+        }))}
         onImport={importScripts}
+        onExportSuccess={async () => {
+          try {
+            await fetch("/api/user/preferences", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                lastExportedAt: new Date().toISOString(),
+              }),
+            });
+          } catch {
+            // ignore
+          }
+        }}
       />
     </>
   );

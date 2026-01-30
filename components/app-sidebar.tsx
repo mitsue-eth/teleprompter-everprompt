@@ -22,8 +22,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NavScripts } from "@/components/nav-scripts";
+import { NavProjects } from "@/components/nav-projects";
 import { cn } from "@/lib/utils";
 import type { Script, ScriptStatus } from "@/hooks/use-scripts";
+import type { Project } from "@/hooks/use-projects";
 
 const navItems = [
   {
@@ -49,6 +51,31 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onMoveToCloud?: (id: string) => Promise<boolean>;
   onMoveToLocal?: (id: string) => Promise<boolean>;
   onExportImportClick?: () => void;
+  projects?: Project[];
+  selectedProjectId?: string | null;
+  onSelectProject?: (id: string | null) => void;
+  onAddScriptToProject?: (
+    scriptId: string,
+    projectId: string,
+  ) => Promise<boolean>;
+  onRemoveScriptFromProject?: (
+    scriptId: string,
+    projectId: string,
+  ) => Promise<boolean>;
+  onCreateProject?: (
+    name: string,
+    description?: string,
+  ) => Promise<Project | null>;
+  onUpdateProject?: (
+    id: string,
+    updates: { name?: string; description?: string | null },
+  ) => Promise<boolean>;
+  onDeleteProject?: (id: string) => Promise<boolean>;
+  onCreateVariant?: (
+    scriptId: string,
+    variantType: string,
+  ) => Promise<Script | null>;
+  onRecordRehearsal?: (scriptId: string) => Promise<boolean>;
 }
 
 export function AppSidebar({
@@ -67,6 +94,16 @@ export function AppSidebar({
   onMoveToCloud,
   onMoveToLocal,
   onExportImportClick,
+  projects = [],
+  selectedProjectId = null,
+  onSelectProject,
+  onAddScriptToProject,
+  onRemoveScriptFromProject,
+  onCreateProject,
+  onUpdateProject,
+  onDeleteProject,
+  onCreateVariant,
+  onRecordRehearsal,
   ...props
 }: AppSidebarProps) {
   const { setOpen, setOpenMobile, isMobile } = useSidebar();
@@ -162,6 +199,24 @@ export function AppSidebar({
             ))}
           </div>
 
+          {/* Projects Section (when signed in) */}
+          {projects.length >= 0 &&
+            onSelectProject &&
+            onCreateProject &&
+            onUpdateProject &&
+            onDeleteProject && (
+              <div className="border-t border-sidebar-border/50 pt-6">
+                <NavProjects
+                  projects={projects}
+                  selectedProjectId={selectedProjectId ?? null}
+                  onSelectProject={onSelectProject}
+                  onCreateProject={onCreateProject}
+                  onUpdateProject={onUpdateProject}
+                  onDeleteProject={onDeleteProject}
+                />
+              </div>
+            )}
+
           {/* Scripts Section */}
           {onSelectScript &&
             onCreateScript &&
@@ -183,6 +238,15 @@ export function AppSidebar({
                   onOpenEnhancedEditor={onOpenEnhancedEditor}
                   onMoveToCloud={onMoveToCloud}
                   onMoveToLocal={onMoveToLocal}
+                  projects={projects.map((p) => ({
+                    id: p.id,
+                    name: p.name,
+                    scriptIds: p.scriptIds,
+                  }))}
+                  onAddScriptToProject={onAddScriptToProject}
+                  onRemoveScriptFromProject={onRemoveScriptFromProject}
+                  onCreateVariant={onCreateVariant}
+                  onRecordRehearsal={onRecordRehearsal}
                 />
               </div>
             )}

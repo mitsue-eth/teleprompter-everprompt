@@ -22,6 +22,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import type { TeleprompterSettings } from "@/hooks/use-teleprompter-settings";
+import { ScriptOutline } from "@/components/script-outline";
 
 // Default values for reset functionality
 const DEFAULT_VALUES = {
@@ -52,6 +53,8 @@ interface TeleprompterControlsProps {
   onReset: () => void; // Reset scroll position (for play controls)
   onResetSettings?: () => void; // Reset all settings to defaults (for settings panel)
   onExportImportClick?: () => void; // Open export/import dialog
+  outlineContent?: string;
+  outlineContentRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 export function TeleprompterControls({
@@ -64,6 +67,8 @@ export function TeleprompterControls({
   onReset,
   onResetSettings,
   onExportImportClick,
+  outlineContent = "",
+  outlineContentRef,
 }: TeleprompterControlsProps) {
   const { theme, setTheme } = useTheme();
 
@@ -98,6 +103,16 @@ export function TeleprompterControls({
       {/* Content */}
       <div className="flex-1 p-6 overflow-y-auto">
         <div className="space-y-6">
+          {/* Outline / Structure */}
+          {outlineContentRef && (
+            <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+              <ScriptOutline
+                content={outlineContent}
+                contentRef={outlineContentRef}
+              />
+            </div>
+          )}
+
           {/* Playback Section */}
           <div className="rounded-xl border border-border/60 bg-muted/30 p-4 space-y-4">
             <div className="flex items-center justify-between">

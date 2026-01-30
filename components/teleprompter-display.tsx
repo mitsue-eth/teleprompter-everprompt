@@ -6,7 +6,7 @@ import { Crosshair } from "@/components/crosshair";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Button } from "@/components/ui/button";
-import { Type, Eye, Clock } from "lucide-react";
+import { Type, Eye, Clock, FileText, List, MessageSquare } from "lucide-react";
 
 interface TeleprompterDisplayProps {
   text: string;
@@ -37,6 +37,8 @@ interface TeleprompterDisplayProps {
   showMarkdownToggle?: boolean;
   scrollSpeed?: number;
   isFullscreen?: boolean;
+  scriptViewMode?: "full" | "bullet" | "cue";
+  onScriptViewModeChange?: (mode: "full" | "bullet" | "cue") => void;
 }
 
 export function TeleprompterDisplay({
@@ -68,35 +70,41 @@ export function TeleprompterDisplay({
   showMarkdownToggle = true,
   scrollSpeed = 1.0,
   isFullscreen = false,
+  scriptViewMode = "full",
+  onScriptViewModeChange,
 }: TeleprompterDisplayProps) {
   const [showMarkdownView, setShowMarkdownView] =
     React.useState(enableMarkdown);
+  const headingIndexRef = React.useRef(0);
 
   // Calculate reading time
-  const calculateReadingTime = React.useCallback((text: string, speed: number): string => {
-    if (!text.trim()) return "0 sec";
-    const wordCount = text.trim().split(/\s+/).length;
-    if (wordCount === 0) return "0 sec";
-    const wordsPerMinute = 175; // Average reading speed
-    const baseMinutes = wordCount / wordsPerMinute;
-    const totalMinutes = baseMinutes / speed; // Higher speed = less time needed
-    
-    if (totalMinutes < 1) {
-      const seconds = Math.round(totalMinutes * 60);
-      return `${seconds} sec`;
-    } else {
-      const minutes = Math.floor(totalMinutes);
-      const seconds = Math.round((totalMinutes - minutes) * 60);
-      if (seconds === 0) {
-        return `${minutes} min`;
+  const calculateReadingTime = React.useCallback(
+    (text: string, speed: number): string => {
+      if (!text.trim()) return "0 sec";
+      const wordCount = text.trim().split(/\s+/).length;
+      if (wordCount === 0) return "0 sec";
+      const wordsPerMinute = 175; // Average reading speed
+      const baseMinutes = wordCount / wordsPerMinute;
+      const totalMinutes = baseMinutes / speed; // Higher speed = less time needed
+
+      if (totalMinutes < 1) {
+        const seconds = Math.round(totalMinutes * 60);
+        return `${seconds} sec`;
+      } else {
+        const minutes = Math.floor(totalMinutes);
+        const seconds = Math.round((totalMinutes - minutes) * 60);
+        if (seconds === 0) {
+          return `${minutes} min`;
+        }
+        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
       }
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    }
-  }, []);
+    },
+    [],
+  );
 
   const readingTime = React.useMemo(
     () => calculateReadingTime(text, scrollSpeed),
-    [text, scrollSpeed, calculateReadingTime]
+    [text, scrollSpeed, calculateReadingTime],
   );
 
   const handleWheel = (e: React.WheelEvent<HTMLDivElement>) => {
@@ -176,11 +184,12 @@ export function TeleprompterDisplay({
 
   const textColorWithOpacity = hexToRgba(textColor, textOpacity);
 
-  // Markdown renderer with colors
+  // Markdown renderer with colors (adds section ids for outline navigation)
   const renderMarkdown = (text: string): React.ReactNode => {
     if (!showMarkdownView) {
       return text;
     }
+    headingIndexRef.current = 0;
 
     // Calculate colors based on text color
     const isDark =
@@ -235,30 +244,38 @@ export function TeleprompterDisplay({
               {children}
             </h1>
           ),
-          h2: ({ children }) => (
-            <h2
-              style={{
-                fontSize: "1.5em",
-                fontWeight: 700,
-                margin: "0.75em 0",
-                color: headingColor,
-              }}
-            >
-              {children}
-            </h2>
-          ),
-          h3: ({ children }) => (
-            <h3
-              style={{
-                fontSize: "1.3em",
-                fontWeight: 600,
-                margin: "0.75em 0",
-                color: headingColor,
-              }}
-            >
-              {children}
-            </h3>
-          ),
+          h2: ({ children }) => {
+            const id = `section-${headingIndexRef.current++}`;
+            return (
+              <h2
+                id={id}
+                style={{
+                  fontSize: "1.5em",
+                  fontWeight: 700,
+                  margin: "0.75em 0",
+                  color: headingColor,
+                }}
+              >
+                {children}
+              </h2>
+            );
+          },
+          h3: ({ children }) => {
+            const id = `section-${headingIndexRef.current++}`;
+            return (
+              <h3
+                id={id}
+                style={{
+                  fontSize: "1.3em",
+                  fontWeight: 600,
+                  margin: "0.75em 0",
+                  color: headingColor,
+                }}
+              >
+                {children}
+              </h3>
+            );
+          },
           ul: ({ children }) => (
             <ul
               style={{
@@ -426,31 +443,69 @@ export function TeleprompterDisplay({
         </div>
       )}
 
-      {/* Markdown Toggle Button */}
-      {showMarkdownToggle && text && !isFullscreen && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowMarkdownView(!showMarkdownView)}
-          className="absolute bottom-4 right-4 z-50 h-9 bg-background/90 backdrop-blur-sm border-2 hover:bg-background shadow-lg"
-          title={
-            showMarkdownView
-              ? "Switch to simple view"
-              : "Switch to markdown view"
-          }
-        >
-          {showMarkdownView ? (
-            <>
-              <Type className="h-4 w-4 mr-2" />
-              Simple
-            </>
-          ) : (
-            <>
-              <Eye className="h-4 w-4 mr-2" />
-              Markdown
-            </>
+      {/* Script view mode (Full / Bullet / Cue) and Markdown toggle */}
+      {text && !isFullscreen && (
+        <div className="absolute bottom-4 right-4 z-50 flex items-center gap-2">
+          {onScriptViewModeChange && (
+            <div className="flex rounded-lg border-2 border-border bg-background/90 backdrop-blur-sm shadow-lg overflow-hidden">
+              <Button
+                variant={scriptViewMode === "full" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-9 rounded-none border-0"
+                onClick={() => onScriptViewModeChange("full")}
+                title="Full script"
+              >
+                <FileText className="h-4 w-4 mr-1.5" />
+                Full
+              </Button>
+              <Button
+                variant={scriptViewMode === "bullet" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-9 rounded-none border-0"
+                onClick={() => onScriptViewModeChange("bullet")}
+                title="Bullet mode"
+              >
+                <List className="h-4 w-4 mr-1.5" />
+                Bullet
+              </Button>
+              <Button
+                variant={scriptViewMode === "cue" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-9 rounded-none border-0"
+                onClick={() => onScriptViewModeChange("cue")}
+                title="Cue mode"
+              >
+                <MessageSquare className="h-4 w-4 mr-1.5" />
+                Cue
+              </Button>
+            </div>
           )}
-        </Button>
+          {showMarkdownToggle && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowMarkdownView(!showMarkdownView)}
+              className="h-9 bg-background/90 backdrop-blur-sm border-2 hover:bg-background shadow-lg"
+              title={
+                showMarkdownView
+                  ? "Switch to simple view"
+                  : "Switch to markdown view"
+              }
+            >
+              {showMarkdownView ? (
+                <>
+                  <Type className="h-4 w-4 mr-2" />
+                  Simple
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Markdown
+                </>
+              )}
+            </Button>
+          )}
+        </div>
       )}
 
       {/* Crosshair Target */}
@@ -467,7 +522,7 @@ export function TeleprompterDisplay({
         ref={contentRef}
         className={cn(
           "transition-transform duration-75 ease-linear absolute",
-          getTextAlignment()
+          getTextAlignment(),
         )}
         style={{
           // Position horizontally based on horizontalPos
@@ -518,7 +573,7 @@ export function TeleprompterDisplay({
             className={cn(
               "text-muted-foreground opacity-50 hover:opacity-70 hover:text-foreground",
               "transition-all cursor-pointer",
-              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded"
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded",
             )}
           >
             Enter your script to begin...

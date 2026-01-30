@@ -6,6 +6,8 @@ import type { ImportedScript } from "@/lib/import"
 
 export type ScriptStatus = "draft" | "ready" | "completed"
 
+export type ScriptViewMode = "full" | "bullet" | "cue"
+
 export interface Script {
   id: string
   name: string
@@ -16,6 +18,14 @@ export interface Script {
   storageType: "local" | "cloud"
   origin?: "local" | "imported" | "cloud"
   isPinned?: boolean
+  projectIds?: string[]
+  bulletContent?: string | null
+  cueContent?: string | null
+  parentScriptId?: string | null
+  variantType?: string | null
+  lastRecordedAt?: string | null
+  lastRehearsedAt?: string | null
+  rehearsalCount?: number
 }
 
 const SCRIPTS_STORAGE_KEY = "teleprompter-scripts"
@@ -79,6 +89,14 @@ export function useScripts() {
       storageType: script.storageType || "local", // Default to local for migration
       origin: script.origin && ["local", "imported", "cloud"].includes(script.origin) ? script.origin : "local",
       isPinned: script.isPinned ?? pinnedIds.has(script.id) ?? false,
+      projectIds: Array.isArray(script.projectIds) ? script.projectIds : [],
+      bulletContent: script.bulletContent ?? null,
+      cueContent: script.cueContent ?? null,
+      parentScriptId: script.parentScriptId ?? null,
+      variantType: script.variantType ?? null,
+      lastRecordedAt: script.lastRecordedAt ?? null,
+      lastRehearsedAt: script.lastRehearsedAt ?? null,
+      rehearsalCount: script.rehearsalCount ?? 0,
     }))
   }
 
@@ -98,7 +116,15 @@ export function useScripts() {
         const pinnedIds = getPinnedScriptIds()
         const scriptsWithPinned = data.map((script: Script) => ({
           ...script,
-          isPinned: pinnedIds.has(script.id),
+          isPinned: script.isPinned ?? pinnedIds.has(script.id),
+          projectIds: script.projectIds ?? [],
+          bulletContent: script.bulletContent ?? null,
+          cueContent: script.cueContent ?? null,
+          parentScriptId: script.parentScriptId ?? null,
+          variantType: script.variantType ?? null,
+          lastRecordedAt: script.lastRecordedAt ?? null,
+          lastRehearsedAt: script.lastRehearsedAt ?? null,
+          rehearsalCount: script.rehearsalCount ?? 0,
         }))
         setCloudScripts(scriptsWithPinned)
       } else {
@@ -335,6 +361,78 @@ export function useScripts() {
     return newScript
   }, [allScripts, getDefaultStorage, session])
 
+  // Update script bullet content (bullet view)
+  const updateScriptBulletContent = useCallback(
+    async (id: string, bulletContent: string) => {
+      const script = allScripts.find((s) => s.id === id)
+      if (!script) return
+
+      if (script.storageType === "cloud" && session?.user?.id) {
+        try {
+          const response = await fetch(`/api/scripts/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ bulletContent: bulletContent || null }),
+          })
+          if (response.ok) {
+            const updated = await response.json()
+            setCloudScripts((prev) =>
+              prev.map((s) => (s.id === id ? { ...s, bulletContent: updated.bulletContent } : s))
+            )
+            setHasUnsavedChanges(false)
+            return
+          }
+        } catch (error) {
+          console.error("Error updating bullet content:", error)
+        }
+      }
+
+      setScripts((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, bulletContent: bulletContent || null, updatedAt: new Date().toISOString() } : s
+        )
+      )
+      setHasUnsavedChanges(false)
+    },
+    [allScripts, session]
+  )
+
+  // Update script cue content (cue view)
+  const updateScriptCueContent = useCallback(
+    async (id: string, cueContent: string) => {
+      const script = allScripts.find((s) => s.id === id)
+      if (!script) return
+
+      if (script.storageType === "cloud" && session?.user?.id) {
+        try {
+          const response = await fetch(`/api/scripts/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ cueContent: cueContent || null }),
+          })
+          if (response.ok) {
+            const updated = await response.json()
+            setCloudScripts((prev) =>
+              prev.map((s) => (s.id === id ? { ...s, cueContent: updated.cueContent } : s))
+            )
+            setHasUnsavedChanges(false)
+            return
+          }
+        } catch (error) {
+          console.error("Error updating cue content:", error)
+        }
+      }
+
+      setScripts((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, cueContent: cueContent || null, updatedAt: new Date().toISOString() } : s
+        )
+      )
+      setHasUnsavedChanges(false)
+    },
+    [allScripts, session]
+  )
+
   // Update script content
   const updateScriptContent = useCallback(
     async (id: string, content: string) => {
@@ -455,37 +553,151 @@ export function useScripts() {
 
   // Toggle pin status for a script
   const togglePinScript = useCallback(
-    (id: string) => {
+    async (id: string) => {
       const script = allScripts.find((s) => s.id === id)
       if (!script) return
 
       const newPinned = !script.isPinned
 
-      // Update pinned IDs in localStorage (works for both local and cloud scripts)
-      const pinnedIds = getPinnedScriptIds()
-      if (newPinned) {
-        pinnedIds.add(id)
-      } else {
-        pinnedIds.delete(id)
+      // For cloud scripts, persist isPinned via API
+      if (script.storageType === "cloud" && session?.user?.id) {
+        try {
+          const response = await fetch(`/api/scripts/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ isPinned: newPinned }),
+          })
+          if (response.ok) {
+            const updated = await response.json()
+            setCloudScripts((prev) =>
+              prev.map((s) => (s.id === id ? { ...s, isPinned: updated.isPinned } : s))
+            )
+            // Keep localStorage in sync as fallback
+            const pinnedIds = getPinnedScriptIds()
+            if (newPinned) pinnedIds.add(id)
+            else pinnedIds.delete(id)
+            savePinnedScriptIds(pinnedIds)
+            return
+          }
+        } catch (error) {
+          console.error("Error updating pin status:", error)
+        }
       }
+
+      // Local scripts or API failure: use localStorage only
+      const pinnedIds = getPinnedScriptIds()
+      if (newPinned) pinnedIds.add(id)
+      else pinnedIds.delete(id)
       savePinnedScriptIds(pinnedIds)
 
-      // Update the script in state
       if (script.storageType === "cloud") {
         setCloudScripts((prev) =>
-          prev.map((s) =>
-            s.id === id ? { ...s, isPinned: newPinned } : s
-          )
+          prev.map((s) => (s.id === id ? { ...s, isPinned: newPinned } : s))
         )
       } else {
         setScripts((prev) =>
-          prev.map((s) =>
-            s.id === id ? { ...s, isPinned: newPinned } : s
-          )
+          prev.map((s) => (s.id === id ? { ...s, isPinned: newPinned } : s))
         )
       }
     },
-    [allScripts]
+    [allScripts, session?.user?.id]
+  )
+
+  // Record rehearsal (cloud scripts only)
+  const recordRehearsal = useCallback(
+    async (id: string) => {
+      const script = allScripts.find((s) => s.id === id)
+      if (!script || script.storageType !== "cloud" || !session?.user?.id) return false
+      try {
+        const response = await fetch(`/api/scripts/${id}/rehearse`, { method: "POST" })
+        if (response.ok) {
+          const data = await response.json()
+          setCloudScripts((prev) =>
+            prev.map((s) =>
+              s.id === id
+                ? {
+                    ...s,
+                    lastRehearsedAt: data.lastRehearsedAt ?? s.lastRehearsedAt,
+                    rehearsalCount: data.rehearsalCount ?? (s.rehearsalCount ?? 0) + 1,
+                  }
+                : s
+            )
+          )
+          return true
+        }
+      } catch (error) {
+        console.error("Error recording rehearsal:", error)
+      }
+      return false
+    },
+    [allScripts, session?.user?.id]
+  )
+
+  // Create variant from script (duplicate with parent link and variant type)
+  const createVariant = useCallback(
+    async (id: string, variantType: string) => {
+      const script = allScripts.find((s) => s.id === id)
+      if (!script) return null
+
+      const typeLabel =
+        variantType === "short"
+          ? "Short"
+          : variantType === "intro"
+            ? "Intro"
+            : variantType === "outro"
+              ? "Outro"
+              : "Variant"
+      const existingNames = allScripts.map((s) => s.name)
+      let newName = `${script.name} (${typeLabel})`
+      let counter = 1
+      while (existingNames.includes(newName)) {
+        newName = `${script.name} (${typeLabel} ${counter})`
+        counter++
+      }
+
+      if (script.storageType === "cloud" && session?.user?.id) {
+        try {
+          const response = await fetch("/api/scripts", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: newName,
+              content: script.content,
+              status: script.status,
+              parentScriptId: script.id,
+              variantType,
+            }),
+          })
+          if (response.ok) {
+            const cloudScript = await response.json()
+            setCloudScripts((prev) => [...prev, cloudScript])
+            setSelectedScriptId(cloudScript.id)
+            setHasUnsavedChanges(false)
+            return cloudScript
+          }
+        } catch (error) {
+          console.error("Error creating variant:", error)
+          return null
+        }
+      }
+
+      const variant: Script = {
+        ...script,
+        id: crypto.randomUUID(),
+        name: newName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        storageType: script.storageType,
+        origin: script.origin ?? "local",
+        parentScriptId: script.id,
+        variantType,
+      }
+      setScripts((prev) => [...prev, variant])
+      setSelectedScriptId(variant.id)
+      setHasUnsavedChanges(false)
+      return variant
+    },
+    [allScripts, session]
   )
 
   // Duplicate script
@@ -688,6 +900,20 @@ export function useScripts() {
     [allScripts, selectedScriptId]
   )
 
+  // Update project membership for local scripts only (persisted in localStorage)
+  const updateScriptProjectIds = useCallback(
+    (scriptId: string, projectIds: string[]) => {
+      const script = allScripts.find((s) => s.id === scriptId)
+      if (!script || script.storageType !== "local") return
+      setScripts((prev) =>
+        prev.map((s) =>
+          s.id === scriptId ? { ...s, projectIds } : s
+        )
+      )
+    },
+    [allScripts]
+  )
+
   // Import scripts from export ZIP or Markdown (never overwrite existing; assign new id on conflict)
   const importScripts = useCallback(
     (imported: ImportedScript[]) => {
@@ -742,5 +968,11 @@ export function useScripts() {
     getDefaultStorage,
     setDefaultStorage,
     importScripts,
+    refetchCloudScripts: fetchCloudScripts,
+    updateScriptProjectIds,
+    updateScriptBulletContent,
+    updateScriptCueContent,
+    createVariant,
+    recordRehearsal,
   }
 }

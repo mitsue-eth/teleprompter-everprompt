@@ -16,6 +16,10 @@ import {
   IconSortDescending,
   IconPin,
   IconPinnedOff,
+  IconFolder,
+  IconFolderOff,
+  IconGitBranch,
+  IconMicrophone,
 } from "@tabler/icons-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,6 +28,9 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -49,6 +56,12 @@ type SortOption = "date" | "status" | "name";
 
 const SORT_STORAGE_KEY = "teleprompter-scripts-sort";
 
+interface ProjectForNav {
+  id: string;
+  name: string;
+  scriptIds: string[];
+}
+
 interface NavScriptsProps {
   scripts: Script[];
   selectedScriptId: string | null;
@@ -62,6 +75,20 @@ interface NavScriptsProps {
   onOpenEnhancedEditor?: (scriptId?: string) => void;
   onMoveToCloud?: (id: string) => Promise<boolean>;
   onMoveToLocal?: (id: string) => Promise<boolean>;
+  projects?: ProjectForNav[];
+  onAddScriptToProject?: (
+    scriptId: string,
+    projectId: string,
+  ) => Promise<boolean>;
+  onRemoveScriptFromProject?: (
+    scriptId: string,
+    projectId: string,
+  ) => Promise<boolean>;
+  onCreateVariant?: (
+    scriptId: string,
+    variantType: string,
+  ) => Promise<Script | null>;
+  onRecordRehearsal?: (scriptId: string) => Promise<boolean>;
 }
 
 function formatDate(dateString: string): string {
@@ -125,6 +152,11 @@ export function NavScripts({
   onOpenEnhancedEditor,
   onMoveToCloud,
   onMoveToLocal,
+  projects = [],
+  onAddScriptToProject,
+  onRemoveScriptFromProject,
+  onCreateVariant,
+  onRecordRehearsal,
 }: NavScriptsProps) {
   const { data: session } = useSession();
   const [renamingScriptId, setRenamingScriptId] = React.useState<string | null>(
@@ -513,6 +545,36 @@ export function NavScripts({
                         <IconCopy className="h-4 w-4 mr-2" />
                         Duplicate
                       </DropdownMenuItem>
+                      {onCreateVariant && (
+                        <DropdownMenuSub>
+                          <DropdownMenuSubTrigger className="cursor-pointer">
+                            <IconGitBranch className="h-4 w-4 mr-2" />
+                            Create variant
+                          </DropdownMenuSubTrigger>
+                          <DropdownMenuSubContent>
+                            {(
+                              ["short", "intro", "outro", "custom"] as const
+                            ).map((type) => (
+                              <DropdownMenuItem
+                                key={type}
+                                onClick={async () => {
+                                  await onCreateVariant(script.id, type);
+                                  toast.success(`Created ${type} variant`);
+                                }}
+                                className="cursor-pointer capitalize"
+                              >
+                                {type === "short"
+                                  ? "Short version"
+                                  : type === "intro"
+                                    ? "Intro only"
+                                    : type === "outro"
+                                      ? "Outro only"
+                                      : "Custom variant"}
+                              </DropdownMenuItem>
+                            ))}
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                      )}
                       {onTogglePin && (
                         <DropdownMenuItem
                           onClick={() => onTogglePin(script.id)}
@@ -531,6 +593,18 @@ export function NavScripts({
                           )}
                         </DropdownMenuItem>
                       )}
+                      {onRecordRehearsal && script.storageType === "cloud" && (
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            const ok = await onRecordRehearsal(script.id);
+                            if (ok) toast.success("Rehearsal recorded");
+                          }}
+                          className="cursor-pointer"
+                        >
+                          <IconMicrophone className="h-4 w-4 mr-2" />
+                          Mark rehearsed
+                        </DropdownMenuItem>
+                      )}
                       {onOpenEnhancedEditor && (
                         <>
                           <DropdownMenuSeparator />
@@ -542,6 +616,59 @@ export function NavScripts({
                           </DropdownMenuItem>
                         </>
                       )}
+                      {projects.length > 0 &&
+                        (onAddScriptToProject || onRemoveScriptFromProject) && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger className="cursor-pointer">
+                                <IconFolder className="h-4 w-4 mr-2" />
+                                Projects
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {projects.map((project) => {
+                                  const inProject = script.projectIds?.includes(
+                                    project.id,
+                                  );
+                                  return (
+                                    <DropdownMenuItem
+                                      key={project.id}
+                                      onClick={async () => {
+                                        if (
+                                          inProject &&
+                                          onRemoveScriptFromProject
+                                        ) {
+                                          await onRemoveScriptFromProject(
+                                            script.id,
+                                            project.id,
+                                          );
+                                        } else if (
+                                          !inProject &&
+                                          onAddScriptToProject
+                                        ) {
+                                          await onAddScriptToProject(
+                                            script.id,
+                                            project.id,
+                                          );
+                                        }
+                                      }}
+                                      className="cursor-pointer flex items-center justify-between"
+                                    >
+                                      <span className="truncate">
+                                        {project.name}
+                                      </span>
+                                      {inProject ? (
+                                        <IconCheck className="h-4 w-4 ml-2 shrink-0" />
+                                      ) : (
+                                        <IconFolderOff className="h-4 w-4 ml-2 shrink-0 opacity-50" />
+                                      )}
+                                    </DropdownMenuItem>
+                                  );
+                                })}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                          </>
+                        )}
                       <DropdownMenuSeparator />
                       <div className="px-2 py-1.5">
                         <p className="text-xs font-medium mb-1.5 text-muted-foreground">

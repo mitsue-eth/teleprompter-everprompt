@@ -6,7 +6,7 @@ import { SiteHeader } from "@/components/site-header";
 import { Teleprompter, TeleprompterRef } from "@/components/teleprompter";
 import { HelpDialog } from "@/components/help-dialog";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import type { ScriptStatus } from "@/hooks/use-scripts";
+import type { Script, ScriptStatus } from "@/hooks/use-scripts";
 
 export default function Home() {
   // Main teleprompter application page
@@ -28,6 +28,28 @@ export default function Home() {
     onExportImportClick?: () => void;
     getDefaultStorage?: () => "local" | "cloud";
     setDefaultStorage?: (storage: "local" | "cloud") => void;
+    projects?: any[];
+    selectedProjectId?: string | null;
+    onSelectProject?: (id: string | null) => void;
+    onAddScriptToProject?: (
+      scriptId: string,
+      projectId: string,
+    ) => Promise<boolean>;
+    onRemoveScriptFromProject?: (
+      scriptId: string,
+      projectId: string,
+    ) => Promise<boolean>;
+    onCreateProject?: (name: string, description?: string) => Promise<any>;
+    onUpdateProject?: (
+      id: string,
+      updates: { name?: string; description?: string | null },
+    ) => Promise<boolean>;
+    onDeleteProject?: (id: string) => Promise<boolean>;
+    onCreateVariant?: (
+      scriptId: string,
+      variantType: string,
+    ) => Promise<Script | null>;
+    onRecordRehearsal?: (scriptId: string) => Promise<boolean>;
   } | null>(null);
 
   const handleSettingsClick = React.useCallback(() => {
@@ -92,6 +114,16 @@ export default function Home() {
         onMoveToCloud={scriptHandlers?.onMoveToCloud}
         onMoveToLocal={scriptHandlers?.onMoveToLocal}
         onExportImportClick={scriptHandlers?.onExportImportClick}
+        projects={scriptHandlers?.projects ?? []}
+        selectedProjectId={scriptHandlers?.selectedProjectId ?? null}
+        onSelectProject={scriptHandlers?.onSelectProject}
+        onAddScriptToProject={scriptHandlers?.onAddScriptToProject}
+        onRemoveScriptFromProject={scriptHandlers?.onRemoveScriptFromProject}
+        onCreateProject={scriptHandlers?.onCreateProject}
+        onUpdateProject={scriptHandlers?.onUpdateProject}
+        onDeleteProject={scriptHandlers?.onDeleteProject}
+        onCreateVariant={scriptHandlers?.onCreateVariant}
+        onRecordRehearsal={scriptHandlers?.onRecordRehearsal}
       />
       <SidebarInset>
         <SiteHeader

@@ -44,11 +44,15 @@ import {
   Pencil,
   Cloud,
   Monitor,
+  FileText,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type EditorMode = "normal" | "fullscreen" | "distraction-free";
 type ViewMode = "editor" | "preview" | "split";
+
+type ContentTab = "full" | "bullet" | "cue";
 
 interface EnhancedScriptEditorProps {
   text: string;
@@ -61,6 +65,10 @@ interface EnhancedScriptEditorProps {
   hasUnsavedChanges?: boolean;
   isSaving?: boolean;
   scrollSpeed?: number;
+  bulletContent?: string | null;
+  cueContent?: string | null;
+  onBulletChange?: (text: string) => void;
+  onCueChange?: (text: string) => void;
 }
 
 export function EnhancedScriptEditor({
@@ -74,12 +82,21 @@ export function EnhancedScriptEditor({
   hasUnsavedChanges = false,
   isSaving = false,
   scrollSpeed = 1.0,
+  bulletContent = null,
+  cueContent = null,
+  onBulletChange,
+  onCueChange,
 }: EnhancedScriptEditorProps) {
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
   const titleInputRef = React.useRef<HTMLInputElement>(null);
   const [mode, setMode] = React.useState<EditorMode>("normal");
   const [viewMode, setViewMode] = React.useState<ViewMode>("split");
+  const [contentTab, setContentTab] = React.useState<ContentTab>("full");
   const [localText, setLocalText] = React.useState(text);
+  const [localBulletText, setLocalBulletText] = React.useState(
+    bulletContent ?? "",
+  );
+  const [localCueText, setLocalCueText] = React.useState(cueContent ?? "");
   const [undoStack, setUndoStack] = React.useState<string[]>([text]);
   const [redoStack, setRedoStack] = React.useState<string[]>([]);
   const [undoIndex, setUndoIndex] = React.useState(0);
@@ -95,9 +112,40 @@ export function EnhancedScriptEditor({
     setUndoIndex(0);
   }, [text, isOpen]);
 
-  // Calculate stats
-  const wordCount = localText.trim() ? localText.trim().split(/\s+/).length : 0;
-  const charCount = localText.length;
+  React.useEffect(() => {
+    setLocalBulletText(bulletContent ?? "");
+  }, [bulletContent, isOpen]);
+
+  React.useEffect(() => {
+    setLocalCueText(cueContent ?? "");
+  }, [cueContent, isOpen]);
+
+  const activeContent =
+    contentTab === "full"
+      ? localText
+      : contentTab === "bullet"
+        ? localBulletText
+        : localCueText;
+
+  const handleActiveContentChange = (newVal: string) => {
+    if (contentTab === "full") {
+      handleTextChange(newVal);
+    } else if (contentTab === "bullet") {
+      setLocalBulletText(newVal);
+      onBulletChange?.(newVal);
+    } else {
+      setLocalCueText(newVal);
+      onCueChange?.(newVal);
+    }
+  };
+
+  const showContentTabs = !!(onBulletChange || onCueChange);
+
+  // Calculate stats from active content
+  const wordCount = activeContent.trim()
+    ? activeContent.trim().split(/\s+/).length
+    : 0;
+  const charCount = activeContent.length;
 
   const calculateReadingTime = (wordCount: number, speed: number): string => {
     if (wordCount === 0) return "0 sec";
@@ -293,7 +341,7 @@ export function EnhancedScriptEditor({
   // Copy to clipboard
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(localText);
+      await navigator.clipboard.writeText(activeContent);
     } catch (err) {
       console.error("Failed to copy:", err);
     }
@@ -301,7 +349,7 @@ export function EnhancedScriptEditor({
 
   // Download as file
   const handleDownload = () => {
-    const blob = new Blob([localText], { type: "text/markdown" });
+    const blob = new Blob([activeContent], { type: "text/markdown" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -587,8 +635,41 @@ export function EnhancedScriptEditor({
           )}
         </DialogHeader>
 
-        {/* Formatting Toolbar */}
-        {showToolbar && (
+        {/* Content tabs: Full / Bullet / Cue */}
+        {showContentTabs && showToolbar && (
+          <div className="px-6 py-2 border-b border-border flex gap-1">
+            <Button
+              variant={contentTab === "full" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setContentTab("full")}
+              className="gap-1.5"
+            >
+              <FileText className="h-4 w-4" />
+              Full script
+            </Button>
+            <Button
+              variant={contentTab === "bullet" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setContentTab("bullet")}
+              className="gap-1.5"
+            >
+              <List className="h-4 w-4" />
+              Bullet mode
+            </Button>
+            <Button
+              variant={contentTab === "cue" ? "secondary" : "ghost"}
+              size="sm"
+              onClick={() => setContentTab("cue")}
+              className="gap-1.5"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Cue mode
+            </Button>
+          </div>
+        )}
+
+        {/* Formatting Toolbar - only for full script */}
+        {showToolbar && contentTab === "full" && (
           <div className="flex items-center gap-1 px-6 py-2 border-b overflow-x-auto">
             <div className="flex items-center gap-1">
               <Button
@@ -780,9 +861,9 @@ export function EnhancedScriptEditor({
                 </div>
               )}
               <Textarea
-                ref={textareaRef}
-                value={localText}
-                onChange={(e) => handleTextChange(e.target.value)}
+                ref={contentTab === "full" ? textareaRef : undefined}
+                value={activeContent}
+                onChange={(e) => handleActiveContentChange(e.target.value)}
                 placeholder="Start writing your script...&#10;&#10;Use the toolbar above or keyboard shortcuts to format your text."
                 className={cn(
                   "flex-1 resize-none font-mono text-sm border-0 rounded-none",
@@ -818,7 +899,7 @@ export function EnhancedScriptEditor({
                 )}
                 style={{ color: editorTextColor }}
               >
-                {localText.trim() ? (
+                {activeContent.trim() ? (
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
                     components={{
@@ -973,7 +1054,7 @@ export function EnhancedScriptEditor({
                       ),
                     }}
                   >
-                    {localText}
+                    {activeContent}
                   </ReactMarkdown>
                 ) : (
                   <div className="text-muted-foreground text-center mt-20">

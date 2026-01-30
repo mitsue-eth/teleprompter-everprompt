@@ -20,6 +20,9 @@ export async function GET(
         id,
         userId: session.user.id,
       },
+      include: {
+        projectLinks: { select: { projectId: true } },
+      },
     })
 
     if (!script) {
@@ -30,10 +33,19 @@ export async function GET(
       id: script.id,
       name: script.name,
       content: script.content,
+      bulletContent: script.bulletContent ?? null,
+      cueContent: script.cueContent ?? null,
       status: script.status as "draft" | "ready" | "completed",
       createdAt: script.createdAt.toISOString(),
       updatedAt: script.updatedAt.toISOString(),
       storageType: "cloud" as const,
+      projectIds: script.projectLinks.map((pl) => pl.projectId),
+      isPinned: script.isPinned,
+      parentScriptId: script.parentScriptId,
+      variantType: script.variantType,
+      lastRecordedAt: script.lastRecordedAt?.toISOString() ?? null,
+      lastRehearsedAt: script.lastRehearsedAt?.toISOString() ?? null,
+      rehearsalCount: script.rehearsalCount,
     })
   } catch (error) {
     console.error("Error fetching script:", error)
@@ -54,7 +66,7 @@ export async function PUT(
 
     const { id } = await params
     const body = await req.json()
-    const { name, content, status } = body
+    const { name, content, status, isPinned, bulletContent, cueContent } = body
 
     // Verify script belongs to user
     const existingScript = await prisma.script.findFirst({
@@ -68,23 +80,40 @@ export async function PUT(
       return NextResponse.json({ error: "Script not found" }, { status: 404 })
     }
 
+    const data: Record<string, unknown> = {
+      ...(name !== undefined && { name: name.trim() }),
+      ...(content !== undefined && { content }),
+      ...(status !== undefined && { status }),
+      ...(typeof isPinned === "boolean" && { isPinned }),
+      ...(bulletContent !== undefined && { bulletContent: bulletContent ?? null }),
+      ...(cueContent !== undefined && { cueContent: cueContent ?? null }),
+    }
+    if (status === "completed") {
+      data.lastRecordedAt = new Date()
+    }
     const script = await prisma.script.update({
       where: { id },
-      data: {
-        ...(name !== undefined && { name: name.trim() }),
-        ...(content !== undefined && { content }),
-        ...(status !== undefined && { status }),
-      },
+      data,
+      include: { projectLinks: { select: { projectId: true } } },
     })
 
     return NextResponse.json({
       id: script.id,
       name: script.name,
       content: script.content,
+      bulletContent: script.bulletContent ?? null,
+      cueContent: script.cueContent ?? null,
       status: script.status as "draft" | "ready" | "completed",
       createdAt: script.createdAt.toISOString(),
       updatedAt: script.updatedAt.toISOString(),
       storageType: "cloud" as const,
+      projectIds: script.projectLinks.map((pl) => pl.projectId),
+      isPinned: script.isPinned,
+      parentScriptId: script.parentScriptId,
+      variantType: script.variantType,
+      lastRecordedAt: script.lastRecordedAt?.toISOString() ?? null,
+      lastRehearsedAt: script.lastRehearsedAt?.toISOString() ?? null,
+      rehearsalCount: script.rehearsalCount,
     })
   } catch (error) {
     console.error("Error updating script:", error)
