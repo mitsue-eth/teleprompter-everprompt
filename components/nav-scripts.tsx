@@ -76,14 +76,8 @@ interface NavScriptsProps {
   onMoveToCloud?: (id: string) => Promise<boolean>;
   onMoveToLocal?: (id: string) => Promise<boolean>;
   projects?: ProjectForNav[];
-  onAddScriptToProject?: (
-    scriptId: string,
-    projectId: string,
-  ) => Promise<boolean>;
-  onRemoveScriptFromProject?: (
-    scriptId: string,
-    projectId: string,
-  ) => Promise<boolean>;
+  onAddScriptToProject?: (scriptId: string, projectId: string) => boolean;
+  onRemoveScriptFromProject?: (scriptId: string, projectId: string) => boolean;
   onCreateVariant?: (
     scriptId: string,
     variantType: string,
@@ -304,17 +298,18 @@ export function NavScripts({
   return (
     <>
       <div className="space-y-1">
-        <div className="flex items-center justify-between px-4 py-2">
-          <span className="text-xs font-semibold text-sidebar-foreground/60 uppercase tracking-wider">
+        {/* Scripts Header - Cleaner design */}
+        <div className="flex items-center justify-between px-1 pb-2 mb-1">
+          <span className="text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wide">
             Scripts
           </span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 cursor-pointer"
+                  className="h-7 w-7 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 cursor-pointer"
                   title="Sort scripts"
                 >
                   <IconSortDescending className="h-4 w-4" />
@@ -352,7 +347,7 @@ export function NavScripts({
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 cursor-pointer"
+              className="h-7 w-7 text-sidebar-foreground/50 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 cursor-pointer"
               onClick={onCreateScript}
               title="Create new script"
             >
@@ -362,18 +357,18 @@ export function NavScripts({
         </div>
 
         {sortedScripts.length === 0 ? (
-          <div className="px-4 py-8 text-center">
-            <IconFileText className="h-8 w-8 mx-auto mb-2 text-sidebar-foreground/40" />
-            <p className="text-xs text-sidebar-foreground/60 mb-3">
+          <div className="px-1 py-12 text-center">
+            <IconFileText className="h-10 w-10 mx-auto mb-3 text-sidebar-foreground/30" />
+            <p className="text-sm text-sidebar-foreground/50 mb-4">
               No scripts yet
             </p>
             <Button
               variant="outline"
               size="sm"
               onClick={onCreateScript}
-              className="text-xs"
+              className="text-sm"
             >
-              <IconPlus className="h-3 w-3 mr-1" />
+              <IconPlus className="h-4 w-4 mr-1.5" />
               Create Script
             </Button>
           </div>
@@ -386,11 +381,11 @@ export function NavScripts({
                     onClick={() => handleSelectScript(script.id)}
                     isActive={selectedScriptId === script.id}
                     className={cn(
-                      "h-auto w-full justify-start gap-3 rounded-lg px-3 py-2.5",
+                      "h-auto w-full justify-start gap-3 rounded-lg px-3 py-3",
                       "text-sidebar-foreground/80 hover:text-sidebar-foreground",
-                      "hover:bg-sidebar-accent/50 transition-colors",
+                      "hover:bg-sidebar-accent/40 transition-colors",
                       selectedScriptId === script.id &&
-                        "bg-sidebar-accent text-sidebar-foreground",
+                        "bg-sidebar-accent/60 text-sidebar-foreground",
                     )}
                   >
                     {/* Left icons column: Status + Storage */}
@@ -633,12 +628,12 @@ export function NavScripts({
                                   return (
                                     <DropdownMenuItem
                                       key={project.id}
-                                      onClick={async () => {
+                                      onClick={() => {
                                         if (
                                           inProject &&
                                           onRemoveScriptFromProject
                                         ) {
-                                          await onRemoveScriptFromProject(
+                                          onRemoveScriptFromProject(
                                             script.id,
                                             project.id,
                                           );
@@ -646,7 +641,7 @@ export function NavScripts({
                                           !inProject &&
                                           onAddScriptToProject
                                         ) {
-                                          await onAddScriptToProject(
+                                          onAddScriptToProject(
                                             script.id,
                                             project.id,
                                           );

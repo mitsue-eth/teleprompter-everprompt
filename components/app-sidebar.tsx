@@ -1,12 +1,7 @@
 "use client";
 
 import * as React from "react";
-import {
-  IconCamera,
-  IconSettings,
-  IconHelp,
-  IconFileExport,
-} from "@tabler/icons-react";
+import { IconSettings, IconHelp, IconFileExport } from "@tabler/icons-react";
 
 import { Logo } from "@/components/logo";
 import { SidebarBackground } from "@/components/sidebar-background";
@@ -18,27 +13,19 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   useSidebar,
 } from "@/components/ui/sidebar";
 import { NavScripts } from "@/components/nav-scripts";
-import { NavProjects } from "@/components/nav-projects";
+import { ProjectFilter } from "@/components/project-filter";
 import { cn } from "@/lib/utils";
 import type { Script, ScriptStatus } from "@/hooks/use-scripts";
 import type { Project } from "@/hooks/use-projects";
-
-const navItems = [
-  {
-    title: "Teleprompter",
-    url: "/",
-    icon: IconCamera,
-  },
-];
 
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onSettingsClick?: () => void;
   onHelpClick?: () => void;
   scripts?: Script[];
+  totalScriptCount?: number;
   selectedScriptId?: string | null;
   onSelectScript?: (id: string) => boolean;
   onCreateScript?: () => void;
@@ -54,23 +41,14 @@ interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   projects?: Project[];
   selectedProjectId?: string | null;
   onSelectProject?: (id: string | null) => void;
-  onAddScriptToProject?: (
-    scriptId: string,
-    projectId: string,
-  ) => Promise<boolean>;
-  onRemoveScriptFromProject?: (
-    scriptId: string,
-    projectId: string,
-  ) => Promise<boolean>;
-  onCreateProject?: (
-    name: string,
-    description?: string,
-  ) => Promise<Project | null>;
+  onAddScriptToProject?: (scriptId: string, projectId: string) => boolean;
+  onRemoveScriptFromProject?: (scriptId: string, projectId: string) => boolean;
+  onCreateProject?: (name: string, description?: string) => Project | null;
   onUpdateProject?: (
     id: string,
     updates: { name?: string; description?: string | null },
-  ) => Promise<boolean>;
-  onDeleteProject?: (id: string) => Promise<boolean>;
+  ) => boolean;
+  onDeleteProject?: (id: string) => boolean;
   onCreateVariant?: (
     scriptId: string,
     variantType: string,
@@ -82,6 +60,7 @@ export function AppSidebar({
   onSettingsClick,
   onHelpClick,
   scripts = [],
+  totalScriptCount,
   selectedScriptId = null,
   onSelectScript,
   onCreateScript,
@@ -147,7 +126,7 @@ export function AppSidebar({
       <div className="relative h-full flex flex-col">
         <SidebarBackground />
 
-        <SidebarHeader className="relative z-10 border-b border-sidebar-border/50 px-6 py-6 flex-shrink-0">
+        <SidebarHeader className="relative z-10 border-b border-sidebar-border/50 px-5 py-5 flex-shrink-0">
           <SidebarMenu>
             <SidebarMenuItem>
               <SidebarMenuButton
@@ -158,14 +137,14 @@ export function AppSidebar({
                   <div className="relative">
                     <Logo
                       variant="icon"
-                      className="!size-8 transition-transform group-hover:scale-105"
+                      className="!size-9 transition-transform group-hover:scale-105"
                     />
                   </div>
                   <div className="flex flex-col">
                     <span className="text-lg font-semibold tracking-tight text-sidebar-foreground">
                       EverPrompt
                     </span>
-                    <span className="text-xs text-sidebar-foreground/60 font-normal">
+                    <span className="text-xs text-sidebar-foreground/50 font-normal">
                       Teleprompter
                     </span>
                   </div>
@@ -175,44 +154,22 @@ export function AppSidebar({
           </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent className="relative z-10 px-4 py-6 flex-1 overflow-y-auto">
-          <div className="space-y-1 mb-6">
-            {navItems.map((item) => (
-              <SidebarMenu key={item.title}>
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={item.url === "/"}
-                    className={cn(
-                      "h-11 w-full justify-start gap-3 rounded-lg px-4",
-                      "text-sidebar-foreground/80 hover:text-sidebar-foreground",
-                      "hover:bg-sidebar-accent/50 transition-colors",
-                    )}
-                  >
-                    <a href={item.url}>
-                      {item.icon && <item.icon className="size-5" />}
-                      <span className="font-medium">{item.title}</span>
-                    </a>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            ))}
-          </div>
-
-          {/* Projects Section (when signed in) */}
-          {projects.length >= 0 &&
-            onSelectProject &&
+        <SidebarContent className="relative z-10 flex-1 overflow-y-auto flex flex-col">
+          {/* Project Filter Bar - Full Width */}
+          {onSelectProject &&
             onCreateProject &&
             onUpdateProject &&
             onDeleteProject && (
-              <div className="border-t border-sidebar-border/50 pt-6">
-                <NavProjects
+              <div className="px-3 py-3 border-b border-sidebar-border/50 bg-sidebar-accent/20">
+                <ProjectFilter
                   projects={projects}
                   selectedProjectId={selectedProjectId ?? null}
                   onSelectProject={onSelectProject}
                   onCreateProject={onCreateProject}
                   onUpdateProject={onUpdateProject}
                   onDeleteProject={onDeleteProject}
+                  filteredScriptCount={scripts.length}
+                  totalScriptCount={totalScriptCount ?? scripts.length}
                 />
               </div>
             )}
@@ -224,7 +181,7 @@ export function AppSidebar({
             onDuplicateScript &&
             onDeleteScript &&
             onUpdateStatus && (
-              <div className="border-t border-sidebar-border/50 pt-6">
+              <div className="flex-1 overflow-y-auto px-3 py-4">
                 <NavScripts
                   scripts={scripts}
                   selectedScriptId={selectedScriptId}
@@ -252,16 +209,16 @@ export function AppSidebar({
             )}
         </SidebarContent>
 
-        <SidebarFooter className="relative z-10 border-t border-sidebar-border/50 px-4 py-4 mt-auto flex-shrink-0">
-          <div className="space-y-1">
+        <SidebarFooter className="relative z-10 border-t border-sidebar-border/50 px-3 py-3 mt-auto flex-shrink-0">
+          <div className="space-y-0.5">
             {/* Settings Button */}
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={handleSettingsClick}
                   className={cn(
-                    "h-10 w-full justify-start gap-3 rounded-lg px-4",
-                    "text-sidebar-foreground/60 hover:text-sidebar-foreground/80",
+                    "h-9 w-full justify-start gap-3 rounded-lg px-3",
+                    "text-sidebar-foreground/50 hover:text-sidebar-foreground/80",
                     "hover:bg-sidebar-accent/30 transition-colors",
                     "text-sm cursor-pointer",
                   )}
@@ -279,8 +236,8 @@ export function AppSidebar({
                   <SidebarMenuButton
                     onClick={handleExportImportClick}
                     className={cn(
-                      "h-10 w-full justify-start gap-3 rounded-lg px-4",
-                      "text-sidebar-foreground/60 hover:text-sidebar-foreground/80",
+                      "h-9 w-full justify-start gap-3 rounded-lg px-3",
+                      "text-sidebar-foreground/50 hover:text-sidebar-foreground/80",
                       "hover:bg-sidebar-accent/30 transition-colors",
                       "text-sm cursor-pointer",
                     )}
@@ -298,14 +255,14 @@ export function AppSidebar({
                 <SidebarMenuButton
                   onClick={handleHelpClick}
                   className={cn(
-                    "h-10 w-full justify-start gap-3 rounded-lg px-4",
-                    "text-sidebar-foreground/60 hover:text-sidebar-foreground/80",
+                    "h-9 w-full justify-start gap-3 rounded-lg px-3",
+                    "text-sidebar-foreground/50 hover:text-sidebar-foreground/80",
                     "hover:bg-sidebar-accent/30 transition-colors",
                     "text-sm cursor-pointer",
                   )}
                 >
                   <IconHelp className="size-4" />
-                  <span className="text-sm">About Project</span>
+                  <span className="text-sm">About</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

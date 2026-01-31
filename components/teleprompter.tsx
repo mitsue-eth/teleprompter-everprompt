@@ -42,6 +42,7 @@ export interface TeleprompterRef {
   openEnhancedEditor: () => void;
   getScriptHandlers: () => {
     scripts: ReturnType<typeof useScripts>["scripts"];
+    totalScriptCount: number;
     selectedScriptId: ReturnType<typeof useScripts>["selectedScriptId"];
     onSelectScript: (id: string) => boolean;
     onCreateScript: () => void;
@@ -59,23 +60,17 @@ export interface TeleprompterRef {
     projects: ReturnType<typeof useProjects>["projects"];
     selectedProjectId: string | null;
     onSelectProject: (id: string | null) => void;
-    onAddScriptToProject: (
-      scriptId: string,
-      projectId: string,
-    ) => Promise<boolean>;
-    onRemoveScriptFromProject: (
-      scriptId: string,
-      projectId: string,
-    ) => Promise<boolean>;
+    onAddScriptToProject: (scriptId: string, projectId: string) => boolean;
+    onRemoveScriptFromProject: (scriptId: string, projectId: string) => boolean;
     onCreateProject: (
       name: string,
       description?: string,
-    ) => Promise<{ id: string; name: string; scriptIds: string[] } | null>;
+    ) => { id: string; name: string; scriptIds: string[] } | null;
     onUpdateProject: (
       id: string,
       updates: { name?: string; description?: string | null },
-    ) => Promise<boolean>;
-    onDeleteProject: (id: string) => Promise<boolean>;
+    ) => boolean;
+    onDeleteProject: (id: string) => boolean;
     onCreateVariant?: (
       scriptId: string,
       variantType: string,
@@ -138,41 +133,47 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
   }, [scripts, selectedProjectId]);
 
   const handleAddScriptToProject = React.useCallback(
-    async (scriptId: string, projectId: string) => {
+    (scriptId: string, projectId: string) => {
       const script = scripts.find((s) => s.id === scriptId);
       if (!script) return false;
-      if (script.storageType === "cloud") {
-        const ok = await addScriptToProject(projectId, scriptId);
-        if (ok) refetchCloudScripts();
-        return ok;
+
+      // Update project's scriptIds (projects are always local)
+      const projectOk = addScriptToProject(projectId, scriptId);
+
+      // For local scripts, also update the script's projectIds
+      if (script.storageType === "local") {
+        const ids = script.projectIds ?? [];
+        if (!ids.includes(projectId)) {
+          updateScriptProjectIds(scriptId, [...ids, projectId]);
+        }
       }
-      const ids = script.projectIds ?? [];
-      if (ids.includes(projectId)) return true;
-      updateScriptProjectIds(scriptId, [...ids, projectId]);
-      return true;
+      // For cloud scripts, the projectIds are managed by the cloud API separately
+      // (but for now, we also update locally for consistency)
+      if (script.storageType === "cloud") {
+        const ids = script.projectIds ?? [];
+        if (!ids.includes(projectId)) {
+          updateScriptProjectIds(scriptId, [...ids, projectId]);
+        }
+      }
+      return projectOk;
     },
-    [scripts, addScriptToProject, refetchCloudScripts, updateScriptProjectIds],
+    [scripts, addScriptToProject, updateScriptProjectIds],
   );
 
   const handleRemoveScriptFromProject = React.useCallback(
-    async (scriptId: string, projectId: string) => {
+    (scriptId: string, projectId: string) => {
       const script = scripts.find((s) => s.id === scriptId);
       if (!script) return false;
-      if (script.storageType === "cloud") {
-        const ok = await removeScriptFromProject(projectId, scriptId);
-        if (ok) refetchCloudScripts();
-        return ok;
-      }
+
+      // Update project's scriptIds (projects are always local)
+      const projectOk = removeScriptFromProject(projectId, scriptId);
+
+      // Update the script's projectIds
       const ids = (script.projectIds ?? []).filter((id) => id !== projectId);
       updateScriptProjectIds(scriptId, ids);
-      return true;
+      return projectOk;
     },
-    [
-      scripts,
-      removeScriptFromProject,
-      refetchCloudScripts,
-      updateScriptProjectIds,
-    ],
+    [scripts, removeScriptFromProject, updateScriptProjectIds],
   );
 
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -238,6 +239,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
         if (!isLoaded) return null;
         return {
           scripts: scriptsFiltered,
+          totalScriptCount: scripts.length,
           selectedScriptId,
           onSelectScript: (id: string) => {
             const success = selectScript(id, false);
@@ -311,8 +313,8 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           onSelectProject: setSelectedProjectId,
           onAddScriptToProject: handleAddScriptToProject,
           onRemoveScriptFromProject: handleRemoveScriptFromProject,
-          onCreateProject: async (name, description) => {
-            const p = await createProject(name, description);
+          onCreateProject: (name, description) => {
+            const p = createProject(name, description);
             return p
               ? { id: p.id, name: p.name, scriptIds: p.scriptIds }
               : null;
@@ -320,6 +322,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
           onUpdateProject: updateProject,
           onDeleteProject: deleteProject,
           onCreateVariant: createVariant,
+          onRecordRehearsal: recordRehearsal,
         };
       },
     }),
@@ -345,6 +348,7 @@ export const Teleprompter = React.forwardRef<TeleprompterRef>((props, ref) => {
       createProject,
       updateProject,
       deleteProject,
+      createVariant,
       recordRehearsal,
     ],
   );

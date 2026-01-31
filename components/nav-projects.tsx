@@ -9,6 +9,8 @@ import {
   IconTrash,
   IconCheck,
   IconX,
+  IconCloud,
+  IconDeviceFloppy,
 } from "@tabler/icons-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -197,9 +199,22 @@ export function NavProjects({
                         }
                       />
                       <div className="flex-1 min-w-0 text-left">
-                        <span className="font-medium text-sm truncate block">
-                          {project.name}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-sm truncate">
+                            {project.name}
+                          </span>
+                          {project.storageType === "cloud" ? (
+                            <IconCloud
+                              className="h-3 w-3 shrink-0 text-sidebar-foreground/40"
+                              title="Stored in cloud"
+                            />
+                          ) : (
+                            <IconDeviceFloppy
+                              className="h-3 w-3 shrink-0 text-sidebar-foreground/40"
+                              title="Stored locally"
+                            />
+                          )}
+                        </div>
                         <span className="text-xs text-sidebar-foreground/50">
                           {project.scriptCount} script
                           {project.scriptCount !== 1 ? "s" : ""}

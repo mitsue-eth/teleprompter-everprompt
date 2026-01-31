@@ -14,6 +14,7 @@ export default function Home() {
   const teleprompterRef = React.useRef<TeleprompterRef>(null);
   const [scriptHandlers, setScriptHandlers] = React.useState<{
     scripts: any[];
+    totalScriptCount: number;
     selectedScriptId: string | null;
     onSelectScript: (id: string) => boolean;
     onCreateScript: () => void;
@@ -31,20 +32,14 @@ export default function Home() {
     projects?: any[];
     selectedProjectId?: string | null;
     onSelectProject?: (id: string | null) => void;
-    onAddScriptToProject?: (
-      scriptId: string,
-      projectId: string,
-    ) => Promise<boolean>;
-    onRemoveScriptFromProject?: (
-      scriptId: string,
-      projectId: string,
-    ) => Promise<boolean>;
-    onCreateProject?: (name: string, description?: string) => Promise<any>;
+    onAddScriptToProject?: (scriptId: string, projectId: string) => boolean;
+    onRemoveScriptFromProject?: (scriptId: string, projectId: string) => boolean;
+    onCreateProject?: (name: string, description?: string) => any;
     onUpdateProject?: (
       id: string,
       updates: { name?: string; description?: string | null },
-    ) => Promise<boolean>;
-    onDeleteProject?: (id: string) => Promise<boolean>;
+    ) => boolean;
+    onDeleteProject?: (id: string) => boolean;
     onCreateVariant?: (
       scriptId: string,
       variantType: string,
@@ -92,7 +87,7 @@ export default function Home() {
     <SidebarProvider
       style={
         {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
+          "--sidebar-width": "calc(var(--spacing) * 90)",
           "--header-height": "calc(var(--spacing) * 12)",
         } as React.CSSProperties
       }
@@ -102,6 +97,7 @@ export default function Home() {
         onSettingsClick={handleSettingsClick}
         onHelpClick={handleHelpClick}
         scripts={scriptHandlers?.scripts ?? []}
+        totalScriptCount={scriptHandlers?.totalScriptCount ?? 0}
         selectedScriptId={scriptHandlers?.selectedScriptId ?? null}
         onSelectScript={scriptHandlers?.onSelectScript}
         onCreateScript={scriptHandlers?.onCreateScript}
